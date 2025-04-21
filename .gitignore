@@ -1,0 +1,34 @@
+# ───────────── 기본 Node/TypeScript ─────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-lock.yaml
+
+# 환경 변수
+.env
+.env.*
+
+# ───────────── 빌드/번들 산출물 ─────────────
+dist/
+coverage/
+*.tgz
+
+# ───────────── OS / Editor 잡파일 ─────────────
+.DS_Store
+Thumbs.db
+
+# VS Code 설정(공유 원치 않을 때)
+.vscode/
+
+# JetBrains IDE (WebStorm, IntelliJ 등)
+.idea/
+
+# Mac 사용자 캐시
+*.swp
+.svn
+
+# ───────────── Chrome Extension 특화 ─────────────
+# Chrome이 동적으로 생성하는 임시 파일
+*_locales/*.json
+# 퍼펫티어·Playwright 다운로드
+.chromium/
