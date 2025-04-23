@@ -1,15 +1,19 @@
-document.getElementById("focus-toggle")?.addEventListener("click", async () => {
-  // 현재 탭에 content‑script 형태로 코드 삽입
-  const [{ id }] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true,
-  });
-  if (!id) return;
+const btn = document.getElementById("focus-toggle")!;
 
-  await chrome.scripting.executeScript({
-    target: { tabId: id },
-    func: () => {
-      document.documentElement.classList.toggle("focus‑anchor__active");
-    },
+document.addEventListener("DOMContentLoaded", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  chrome.tabs.sendMessage(tab.id!, { type: "get-focus-state" }, (resp) => {
+    updateIndicator(resp.isActive);
   });
 });
+
+btn.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  chrome.tabs.sendMessage(tab.id!, { type: "toggle-focus" }, (resp) => {
+    updateIndicator(resp.isActive);
+  });
+});
+
+function updateIndicator(active: boolean) {
+  btn.style.backgroundColor = active ? "green" : "red";
+}

@@ -1,25 +1,43 @@
 import { Stack } from "./Stack";
 
 const nodeList: Node[] = [];
+const nodeIdxMap = new Map<Node, number>();
 const anchorIndicesMap = new Map<Node, number[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
 const delimiters: string[] = [". ", "? ", "! "];
 
+let focusActive = false;
 let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
-let focusedSentenceStartCharIdx = 0;
 
-/*
-    무시 리스트 = ['a', 'b', 's', ...]
-    노드 이름이 무시 리스트에 해당하면 스택에 추가 X, 그 외에는 스택에 새 버퍼 삽입.
-    모든 노드는 자식 중 텍스트 노드 있으면 버퍼에 삽입.
-    
-    anchor 노드에서 자식 노드 순회 모두 끝나면, 스택 최상단 버퍼를 꺼내서 문장 분리.
-    버퍼의 모든 텍스트를 이어붙임, 이 때 각 문자는 버퍼 내 몇번째 텍스트노드에 위치해있는지 기록.
-    ". "과 같은 문장 종료 문자열로 문장 분리.
-    분리된 문장의 첫번째 문자에 해당하는 텍스트노드를 '앵커 노드'로 지정.
-    
-*/
+const startDelayTime = 1000;
+
+chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
+  focusActive = stored ?? false;
+  if (focusActive) {
+    document.documentElement.classList.add("focus-anchor__active");
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "toggle-focus") {
+    focusActive = !focusActive;
+
+    if (focusActive) {
+      document.documentElement.classList.add("focus-anchor__active");
+      activateFocus();
+    } else {
+      document.documentElement.classList.remove("focus-anchor__active");
+      deactivateFocus();
+    }
+
+    chrome.storage.local.set({ focusActive });
+
+    sendResponse({ isActive: focusActive });
+  } else if (msg.type === "get-focus-state") {
+    sendResponse({ isActive: focusActive });
+  }
+});
 
 class Fragment {
   ch: string;
@@ -36,6 +54,8 @@ class Fragment {
 let fragmentListStack = new Stack<Fragment[]>();
 
 function traversalPreOrder(node: Node): void {
+  if (node.nodeName == "SCRIPT") return;
+
   nodeList.push(node);
 
   // 탐색 대상이 텍스트 노드라면, 텍스트조각으로 분리해서 스택 최상단에 삽입.
@@ -43,7 +63,9 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack
+          .peek()
+          .push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -60,7 +82,10 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
+    if (
+      child.nodeType != Node.TEXT_NODE &&
+      !nonSplitTagList.includes(child.nodeName)
+    ) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -88,7 +113,10 @@ function traversalPreOrder(node: Node): void {
 
       let matchSucceed = true;
       for (let i = 0; i < delimeter.length; i++) {
-        if (delimeter[i] != fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch) {
+        if (
+          delimeter[i] !=
+          fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch
+        ) {
           matchSucceed = false;
           break;
         }
@@ -132,10 +160,22 @@ function traversalPreOrder(node: Node): void {
 function init(): void {
   traversalPreOrder(document.body);
 
-  let i = 0;
-  anchorIndicesMap.forEach((anchorIndices) => {
-    console.debug(`${i++}: anchorIndices=${anchorIndices}`);
-  });
+  for (let i = 0; i < nodeList.length; i++) {
+    nodeIdxMap.set(nodeList[i], i);
+  }
+
+  const firstNode = anchorIndicesMap.keys().next().value as Node;
+  focusedNodeIdx = nodeIdxMap.get(firstNode)!;
+  focusedSentenceIdx = 0;
+
+  //   for (const node of anchorIndicesMap.keys()) {
+  //     console.debug(
+  //       `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorIndicesMap.get(
+  //         node
+  //       )}`
+  //     );
+  //   }
+  console.debug(`nodeList.length=${nodeList.length}`);
 }
 
 window.addEventListener(
@@ -143,8 +183,7 @@ window.addEventListener(
   () => {
     setTimeout(() => {
       init();
-      console.debug(`nodeList.length=${nodeList.length}`);
-    }, 1000);
+    }, startDelayTime);
   },
   { once: true }
 );
@@ -165,8 +204,14 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  canvas.width = Math.max(
+    document.documentElement.scrollWidth,
+    document.body.scrollWidth
+  );
+  canvas.height = Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight
+  );
 }
 updateCanvasSize();
 
@@ -179,13 +224,23 @@ let rect = {
   height: 50,
 };
 
-function drawRectangle() {
+function drawRectangle(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.strokeStyle = "red";
   ctx.lineWidth = 3;
   ctx.strokeRect(rect.x, rect.y + rect.height, 20, 0);
 }
-drawRectangle();
+
+function clearAll(): void {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function activateFocus(): void {
+  updateFocusedNode();
+}
+function deactivateFocus(): void {
+  clearAll();
+}
 
 function moveFocus(offset: number) {
   const dir = Math.sign(offset);
@@ -194,48 +249,66 @@ function moveFocus(offset: number) {
   while (cnt > 0) {
     const focusedNode = nodeList[focusedNodeIdx];
 
+    // 다음 목적지가 현재 노드 내 앵커인덱스 리스트에 존재할 경우.
     if (
-      focusedSentenceIdx + dir < 0 ||
-      focusedSentenceIdx + dir > anchorIndicesMap.get(focusedNode)!.length - 1
+      focusedSentenceIdx + dir >= 0 &&
+      focusedSentenceIdx + dir <= anchorIndicesMap.get(focusedNode)!.length - 1
     ) {
-      let endOfNode = false;
+      focusedSentenceIdx += dir;
+      cnt--;
+      continue;
+    }
 
-      while (true) {
-        if (focusedNodeIdx + dir < 0 || focusedNodeIdx + dir > nodeList.length - 1) {
-          endOfNode = true;
-          break;
-        }
-
-        if (!anchorIndicesMap.has(nodeList[focusedNodeIdx + dir])) {
-          console.debug(`${focusedNodeIdx + dir} doesn't have anchorIndices`);
-          focusedNodeIdx += dir;
-          continue;
-        }
-
-        focusedNodeIdx += dir;
-        if (dir > 0) {
-          focusedSentenceIdx = 0;
-        }
-        if (dir < 0) {
-          focusedSentenceIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])!.length - 1;
-        }
+    // 다음 목적지가 현재 노드 내 앵커인덱스가 리스트를 벗어나는 경우.
+    let endOfNode = false;
+    let nextFosuedNodeIdx = focusedNodeIdx;
+    let nextFocusedSentenceIdx = focusedSentenceIdx;
+    while (true) {
+      if (
+        nextFosuedNodeIdx + dir < 0 ||
+        nextFosuedNodeIdx + dir > nodeList.length - 1
+      ) {
+        endOfNode = true;
         break;
       }
-      if (endOfNode) break;
-    } else {
-      focusedSentenceIdx += dir;
+
+      if (!anchorIndicesMap.has(nodeList[nextFosuedNodeIdx + dir])) {
+        console.debug(`${nextFosuedNodeIdx + dir} doesn't have anchorIndices`);
+        nextFosuedNodeIdx += dir;
+        continue;
+      }
+
+      nextFosuedNodeIdx += dir;
+      if (dir > 0) {
+        nextFocusedSentenceIdx = 0;
+      }
+      if (dir < 0) {
+        nextFocusedSentenceIdx =
+          anchorIndicesMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+      }
+      break;
     }
+
+    // 현재 노드가 마지막이라면 더 이상 이동하지 않고 종료.
+    if (endOfNode) break;
+
+    focusedNodeIdx = nextFosuedNodeIdx;
+    focusedSentenceIdx = nextFocusedSentenceIdx;
 
     cnt--;
   }
 }
 
-function updateFocusedNode() {
+function updateFocusedNode(): void {
+  if (!focusActive) return;
+
   console.debug(`focusedNodeIdx=${focusedNodeIdx}`);
   console.debug(`focusedSentenceIdx=${focusedSentenceIdx}`);
 
   const range = document.createRange();
-  const anchorIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
+  const anchorIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])![
+    focusedSentenceIdx
+  ];
 
   console.debug(`anchorIdx=${anchorIdx}`);
   console.debug(
@@ -243,6 +316,8 @@ function updateFocusedNode() {
       nodeList[focusedNodeIdx]
     )!}`
   );
+
+  printInfo(nodeList[focusedNodeIdx]);
 
   range.setStart(nodeList[focusedNodeIdx], anchorIdx);
   range.setEnd(nodeList[focusedNodeIdx], anchorIdx);
@@ -270,34 +345,41 @@ function updateFocusedNode() {
   drawRectangle();
 }
 
-function printInfo(node: Node) {
+function printInfo(node: Node): void {
   console.debug(`
-    --- Clicked Node Info ---\n
+    --- Node Info ---\n
     node.nodeType=${node.nodeType}
     node.nodeName=${node.nodeName}
     node.parentNode?.nodeType=${node.parentNode?.nodeType}
     node.parentNode?.nodeName=${node.parentNode?.nodeName}
-    node.textContent=${node.textContent}
     -------------`);
 }
 
 document.addEventListener("mouseup", function (e) {
-  const clickedElement = e.target;
+  if (!focusActive) return;
 
-  printInfo(clickedElement as Node);
+  const clickedTarget = e.target;
 
-  var idx = nodeList.findIndex((node) => node === clickedElement);
+  if (!clickedTarget || !(clickedTarget instanceof Node)) {
+    console.debug("Type of clicked target is not 'Node'");
+    return;
+  }
+  const clickedNode = clickedTarget as Node;
+  printInfo(clickedNode as Node);
 
-  if (idx === -1) return;
+  let idx = nodeIdxMap.get(clickedNode);
+
+  if (!idx) return;
   while (idx < nodeList.length && !anchorIndicesMap.has(nodeList[idx])) idx++;
 
   focusedNodeIdx = idx;
   focusedSentenceIdx = 0;
-  focusedSentenceStartCharIdx = 0;
   updateFocusedNode();
 });
 
 document.addEventListener("keydown", function (e) {
+  if (!focusActive) return;
+
   switch (e.key) {
     case "ArrowUp":
       moveFocus(-1);
