@@ -1,9 +1,13 @@
-const nodeList: Node[] = [];
-const isAnchorNode: boolean[] = [];
+import { Stack } from "./Stack";
 
-var focusedNodeIdx = 0;
-var focusedSentenceIdx = 0;
-var focusedSentenceStartCharIdx = 0;
+const nodeList: Node[] = [];
+const anchorIndicesMap = new Map<Node, number[]>();
+const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
+const delimiters: string[] = [". ", "? ", "! "];
+
+let focusedNodeIdx = 0;
+let focusedSentenceIdx = 0;
+let focusedSentenceStartCharIdx = 0;
 
 /*
     무시 리스트 = ['a', 'b', 's', ...]
@@ -17,18 +21,133 @@ var focusedSentenceStartCharIdx = 0;
     
 */
 
+class Fragment {
+  ch: string;
+  node: Node;
+  idx: number;
+
+  constructor(ch: string, node: Node, idx: number) {
+    this.ch = ch;
+    this.node = node;
+    this.idx = idx;
+  }
+}
+
+let fragmentListStack = new Stack<Fragment[]>();
+
 function traversalPreOrder(node: Node): void {
   nodeList.push(node);
 
-  node.childNodes.forEach((child) => traversalPreOrder(child));
+  // 탐색 대상이 텍스트 노드라면, 텍스트조각으로 분리해서 스택 최상단에 삽입.
+  if (node.nodeType == Node.TEXT_NODE) {
+    const trimmedContent = node.textContent?.trim();
+    if (trimmedContent) {
+      for (let i = 0; i < node.textContent!.length; i++) {
+        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
+      }
+    }
+    return;
+  }
+
+  // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
+  if (!nonSplitTagList.includes(node.nodeName)) {
+    fragmentListStack.push([]);
+  }
+
+  node.childNodes.forEach((child) => {
+    // console.debug(`start traversal = ${child.nodeName}`);
+    traversalPreOrder(child);
+    // console.debug(`end traversal = ${child.nodeName}`);
+
+    // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
+    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
+      fragmentListStack.peek().push(new Fragment("", child, -1));
+    }
+  });
+
+  // 비분리 태그라면 상위 노드에서 해석해야하므로 반환.
+  if (nonSplitTagList.includes(node.nodeName)) {
+    return;
+  }
+
+  // 스택 최상단의 조각들을 이어붙여 해석.
+  let fragmentList = fragmentListStack.pop();
+  let fragmentBuffer: Fragment[] = [];
+  let stringBuffer = "";
+  for (const fragment of fragmentList) {
+    if (fragment.idx != -1) {
+      fragmentBuffer.push(fragment);
+      stringBuffer += fragment.ch;
+    }
+
+    let needSplit = false;
+
+    // 구분자를 통해 이어붙인 조각들이 문장으로 분리되어야 하는지 검사.
+    for (const delimeter of delimiters) {
+      if (delimeter.length > fragmentBuffer.length) continue;
+
+      let matchSucceed = true;
+      for (let i = 0; i < delimeter.length; i++) {
+        if (delimeter[i] != fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch) {
+          matchSucceed = false;
+          break;
+        }
+      }
+
+      if (matchSucceed) {
+        needSplit = true;
+        break;
+      }
+    }
+
+    // 구분용 조각이라면
+    if (fragment.idx == -1) {
+      needSplit = true;
+    }
+
+    if (!needSplit) continue;
+
+    // 노드의 앵커인덱스를 Map에 삽입.
+    // 공백 문자뿐인 문장은 필요없으므로 검사.
+    // 텍스트 없는 분리 태그가 첫번째 조각으로 오면 길이가 0일수도 있으므로 검사.
+    if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
+      if (!anchorIndicesMap.get(fragmentBuffer[0].node)) {
+        anchorIndicesMap.set(fragmentBuffer[0].node, []);
+      }
+      anchorIndicesMap.get(fragmentBuffer[0].node)!.push(fragmentBuffer[0].idx);
+    }
+    fragmentBuffer = [];
+    stringBuffer = "";
+  }
+
+  // 마지막 문장이 프레임버퍼에 남아있을 수 있으므로 처리.
+  if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
+    if (!anchorIndicesMap.has(fragmentBuffer[0].node)) {
+      anchorIndicesMap.set(fragmentBuffer[0].node, []);
+    }
+    anchorIndicesMap.get(fragmentBuffer[0].node)!.push(fragmentBuffer[0].idx);
+  }
 }
 
-window.addEventListener("load", () => {
-  setTimeout(() => {
-    traversalPreOrder(document.body);
-    console.log(`nodeList.length=${nodeList.length}`);
-  }, 3000);
-});
+function init(): void {
+  traversalPreOrder(document.body);
+
+  let i = 0;
+  anchorIndicesMap.forEach((anchorIndices) => {
+    console.debug(`${i++}: anchorIndices=${anchorIndices}`);
+  });
+}
+
+window.addEventListener(
+  "load",
+  () => {
+    setTimeout(() => {
+      init();
+      console.debug(`nodeList.length=${nodeList.length}`);
+    }, 1000);
+  },
+  { once: true }
+);
 
 let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
 if (!canvas) {
@@ -46,14 +165,8 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(
-    document.documentElement.scrollWidth,
-    document.body.scrollWidth
-  );
-  canvas.height = Math.max(
-    document.documentElement.scrollHeight,
-    document.body.scrollHeight
-  );
+  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
 updateCanvasSize();
 
@@ -74,70 +187,65 @@ function drawRectangle() {
 }
 drawRectangle();
 
-function moveNodeFocus(offset: number) {
+function moveFocus(offset: number) {
   const dir = Math.sign(offset);
-  var cnt = Math.abs(offset);
+  let cnt = Math.abs(offset);
 
   while (cnt > 0) {
-    focusedNodeIdx += dir;
-    if (nodeList[focusedNodeIdx].nodeType !== Node.TEXT_NODE) continue;
+    const focusedNode = nodeList[focusedNodeIdx];
 
-    const node = nodeList[focusedNodeIdx].parentNode as Node;
+    if (
+      focusedSentenceIdx + dir < 0 ||
+      focusedSentenceIdx + dir > anchorIndicesMap.get(focusedNode)!.length - 1
+    ) {
+      let endOfNode = false;
 
-    console.log(
-      `nodeList[focusedNodeIdx].parentNode.nodeName=${node.nodeName}`
-    );
+      while (true) {
+        if (focusedNodeIdx + dir < 0 || focusedNodeIdx + dir > nodeList.length - 1) {
+          endOfNode = true;
+          break;
+        }
 
-    if (["asdf"].includes(node.nodeName)) {
-      focusedNodeIdx += dir;
-      continue;
+        if (!anchorIndicesMap.has(nodeList[focusedNodeIdx + dir])) {
+          console.debug(`${focusedNodeIdx + dir} doesn't have anchorIndices`);
+          focusedNodeIdx += dir;
+          continue;
+        }
+
+        focusedNodeIdx += dir;
+        if (dir > 0) {
+          focusedSentenceIdx = 0;
+        }
+        if (dir < 0) {
+          focusedSentenceIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])!.length - 1;
+        }
+        break;
+      }
+      if (endOfNode) break;
+    } else {
+      focusedSentenceIdx += dir;
     }
 
     cnt--;
   }
 }
 
-function moveSentenceFocus(offset: number) {
-  const focusedNodeText = nodeList[focusedNodeIdx].textContent;
-  if (!focusedNodeText) return;
-
-  const sentenceStartCharIndices: number[] = [];
-  let startCharIdx = 0;
-  while (true) {
-    sentenceStartCharIndices.push(startCharIdx);
-    const nextStartCharIdx = focusedNodeText.indexOf(". ", startCharIdx);
-    if (nextStartCharIdx == -1) break;
-    startCharIdx = nextStartCharIdx + 2;
-  }
-
-  if (focusedSentenceIdx == -1) {
-    focusedSentenceIdx = sentenceStartCharIndices.length - 1;
-  }
-
-  const nextFocusedSentenceIdx = focusedSentenceIdx + offset;
-  if (nextFocusedSentenceIdx > sentenceStartCharIndices.length - 1) {
-    focusedSentenceIdx = 0;
-    moveNodeFocus(1);
-    moveSentenceFocus(nextFocusedSentenceIdx - sentenceStartCharIndices.length);
-    return;
-  }
-  if (nextFocusedSentenceIdx < 0) {
-    focusedSentenceIdx = -1;
-    moveNodeFocus(-1);
-    moveSentenceFocus(nextFocusedSentenceIdx + 1);
-    return;
-  }
-
-  focusedSentenceIdx = nextFocusedSentenceIdx;
-  focusedSentenceStartCharIdx = sentenceStartCharIndices[focusedSentenceIdx];
-}
-
 function updateFocusedNode() {
-  if (nodeList[focusedNodeIdx].nodeType !== Node.TEXT_NODE) return;
+  console.debug(`focusedNodeIdx=${focusedNodeIdx}`);
+  console.debug(`focusedSentenceIdx=${focusedSentenceIdx}`);
 
   const range = document.createRange();
-  range.setStart(nodeList[focusedNodeIdx], focusedSentenceStartCharIdx);
-  range.setEnd(nodeList[focusedNodeIdx], focusedSentenceStartCharIdx);
+  const anchorIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
+
+  console.debug(`anchorIdx=${anchorIdx}`);
+  console.debug(
+    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorIndicesMap.get(
+      nodeList[focusedNodeIdx]
+    )!}`
+  );
+
+  range.setStart(nodeList[focusedNodeIdx], anchorIdx);
+  range.setEnd(nodeList[focusedNodeIdx], anchorIdx);
 
   var clickedFirstCharRect = null;
   const rects = range.getClientRects();
@@ -150,7 +258,7 @@ function updateFocusedNode() {
   };
 
   if (!clickedFirstCharRect) {
-    console.log("텍스트 노드를 찾을 수 없거나 비어 있음");
+    console.debug("텍스트 노드를 찾을 수 없거나 비어 있음");
     return;
   }
 
@@ -162,27 +270,26 @@ function updateFocusedNode() {
   drawRectangle();
 }
 
-function checkNode(node: Node) {
-  console.log("--- check ---");
-  console.log(`node.nodeType=${node.nodeType}`);
-  console.log(`node.nodeName=${node.nodeName}`);
-  console.log(`node.parentNode?.nodeType=${node.parentNode?.nodeType}`);
-  console.log(`node.parentNode?.nodeName=${node.parentNode?.nodeName}`);
-  console.log("-------------");
+function printInfo(node: Node) {
+  console.debug(`
+    --- Clicked Node Info ---\n
+    node.nodeType=${node.nodeType}
+    node.nodeName=${node.nodeName}
+    node.parentNode?.nodeType=${node.parentNode?.nodeType}
+    node.parentNode?.nodeName=${node.parentNode?.nodeName}
+    node.textContent=${node.textContent}
+    -------------`);
 }
 
 document.addEventListener("mouseup", function (e) {
   const clickedElement = e.target;
 
-  checkNode(clickedElement as Node);
+  printInfo(clickedElement as Node);
 
   var idx = nodeList.findIndex((node) => node === clickedElement);
-  console.log(`clickedElement=${clickedElement}`);
-  console.log(`idx=${idx}`);
 
   if (idx === -1) return;
-  while (idx < nodeList.length && nodeList[idx].nodeType !== Node.TEXT_NODE)
-    idx++;
+  while (idx < nodeList.length && !anchorIndicesMap.has(nodeList[idx])) idx++;
 
   focusedNodeIdx = idx;
   focusedSentenceIdx = 0;
@@ -193,19 +300,19 @@ document.addEventListener("mouseup", function (e) {
 document.addEventListener("keydown", function (e) {
   switch (e.key) {
     case "ArrowUp":
-      moveSentenceFocus(-1);
+      moveFocus(-1);
       e.preventDefault();
       break;
     case "ArrowDown":
-      moveSentenceFocus(1);
+      moveFocus(1);
       e.preventDefault();
       break;
     case "ArrowLeft":
-      moveSentenceFocus(-1);
+      moveFocus(-1);
       e.preventDefault();
       break;
     case "ArrowRight":
-      moveSentenceFocus(1);
+      moveFocus(1);
       e.preventDefault();
       break;
     default:

@@ -2,14 +2,13 @@
   "compilerOptions": {
     "target": "ES2020",
     "lib": ["DOM", "ES2020"],
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleResolution": "Node",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "outDir": "dist",
-    "types": ["chrome"]
+    "types": ["chrome", "node", "jsdom"]
   },
   "include": ["src/**/*"]
 }
-

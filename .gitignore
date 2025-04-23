@@ -32,3 +32,5 @@ Thumbs.db
 *_locales/*.json
 # 퍼펫티어·Playwright 다운로드
 .chromium/
+
+*.zip
