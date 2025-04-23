@@ -1,8 +1,44 @@
 import { Stack } from "./Stack";
 
+class Rect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+
+  constructor(x: number, y: number, width: number, height: number) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+  }
+}
+
+class Fragment {
+  ch: string;
+  node: Node;
+  idx: number;
+
+  constructor(ch: string, node: Node, idx: number) {
+    this.ch = ch;
+    this.node = node;
+    this.idx = idx;
+  }
+}
+
+class Anchor {
+  startIdx: number;
+  endIdx: number;
+
+  constructor(startIdx: number, endIdx: number) {
+    this.startIdx = startIdx;
+    this.endIdx = endIdx;
+  }
+}
+
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
-const anchorIndicesMap = new Map<Node, number[]>();
+const anchorIndicesMap = new Map<Node, Anchor[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
 const delimiters: string[] = [". ", "? ", "! "];
 
@@ -10,7 +46,7 @@ let focusActive = false;
 let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
 
-const startDelayTime = 1000;
+const startDelayTime = 0;
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
   focusActive = stored ?? false;
@@ -18,7 +54,6 @@ chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
     document.documentElement.classList.add("focus-anchor__active");
   }
 });
-
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "toggle-focus") {
     focusActive = !focusActive;
@@ -39,18 +74,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 });
 
-class Fragment {
-  ch: string;
-  node: Node;
-  idx: number;
-
-  constructor(ch: string, node: Node, idx: number) {
-    this.ch = ch;
-    this.node = node;
-    this.idx = idx;
-  }
-}
-
 let fragmentListStack = new Stack<Fragment[]>();
 
 function traversalPreOrder(node: Node): void {
@@ -63,9 +86,7 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack
-          .peek()
-          .push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -82,10 +103,7 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (
-      child.nodeType != Node.TEXT_NODE &&
-      !nonSplitTagList.includes(child.nodeName)
-    ) {
+    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -113,10 +131,7 @@ function traversalPreOrder(node: Node): void {
 
       let matchSucceed = true;
       for (let i = 0; i < delimeter.length; i++) {
-        if (
-          delimeter[i] !=
-          fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch
-        ) {
+        if (delimeter[i] != fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch) {
           matchSucceed = false;
           break;
         }
@@ -128,7 +143,7 @@ function traversalPreOrder(node: Node): void {
       }
     }
 
-    // 구분용 조각이라면
+    // 구분용 조각인 경우.
     if (fragment.idx == -1) {
       needSplit = true;
     }
@@ -142,7 +157,9 @@ function traversalPreOrder(node: Node): void {
       if (!anchorIndicesMap.get(fragmentBuffer[0].node)) {
         anchorIndicesMap.set(fragmentBuffer[0].node, []);
       }
-      anchorIndicesMap.get(fragmentBuffer[0].node)!.push(fragmentBuffer[0].idx);
+      anchorIndicesMap
+        .get(fragmentBuffer[0].node)!
+        .push(new Anchor(fragmentBuffer[0].idx, fragmentBuffer[fragmentBuffer.length - 1].idx + 1));
     }
     fragmentBuffer = [];
     stringBuffer = "";
@@ -153,7 +170,9 @@ function traversalPreOrder(node: Node): void {
     if (!anchorIndicesMap.has(fragmentBuffer[0].node)) {
       anchorIndicesMap.set(fragmentBuffer[0].node, []);
     }
-    anchorIndicesMap.get(fragmentBuffer[0].node)!.push(fragmentBuffer[0].idx);
+    anchorIndicesMap
+      .get(fragmentBuffer[0].node)!
+      .push(new Anchor(fragmentBuffer[0].idx, fragmentBuffer[fragmentBuffer.length - 1].idx + 1));
   }
 }
 
@@ -168,13 +187,15 @@ function init(): void {
   focusedNodeIdx = nodeIdxMap.get(firstNode)!;
   focusedSentenceIdx = 0;
 
-  //   for (const node of anchorIndicesMap.keys()) {
-  //     console.debug(
-  //       `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorIndicesMap.get(
-  //         node
-  //       )}`
-  //     );
-  //   }
+  for (const node of anchorIndicesMap.keys()) {
+    console.debug(
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorIndicesMap
+        .get(node)!
+        .map((anchor) => {
+          return `(s=${anchor.startIdx},e=${anchor.endIdx})`;
+        })}`
+    );
+  }
   console.debug(`nodeList.length=${nodeList.length}`);
 }
 
@@ -204,31 +225,17 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(
-    document.documentElement.scrollWidth,
-    document.body.scrollWidth
-  );
-  canvas.height = Math.max(
-    document.documentElement.scrollHeight,
-    document.body.scrollHeight
-  );
+  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
 updateCanvasSize();
 
 window.addEventListener("resize", updateCanvasSize);
 
-let rect = {
-  x: 100,
-  y: 100,
-  width: 50,
-  height: 50,
-};
-
-function drawRectangle(): void {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+function drawRectangle(rect: Rect): void {
   ctx.strokeStyle = "red";
   ctx.lineWidth = 3;
-  ctx.strokeRect(rect.x, rect.y + rect.height, 20, 0);
+  ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 }
 
 function clearAll(): void {
@@ -264,10 +271,7 @@ function moveFocus(offset: number) {
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
     while (true) {
-      if (
-        nextFosuedNodeIdx + dir < 0 ||
-        nextFosuedNodeIdx + dir > nodeList.length - 1
-      ) {
+      if (nextFosuedNodeIdx + dir < 0 || nextFosuedNodeIdx + dir > nodeList.length - 1) {
         endOfNode = true;
         break;
       }
@@ -283,8 +287,7 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx =
-          anchorIndicesMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx = anchorIndicesMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
@@ -306,43 +309,35 @@ function updateFocusedNode(): void {
   console.debug(`focusedSentenceIdx=${focusedSentenceIdx}`);
 
   const range = document.createRange();
-  const anchorIdx = anchorIndicesMap.get(nodeList[focusedNodeIdx])![
-    focusedSentenceIdx
-  ];
+  const anchor = anchorIndicesMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
 
-  console.debug(`anchorIdx=${anchorIdx}`);
+  console.debug(`anchor=${anchor}`);
   console.debug(
-    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorIndicesMap.get(
-      nodeList[focusedNodeIdx]
-    )!}`
+    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorIndicesMap
+      .get(nodeList[focusedNodeIdx])!
+      .map((anchor) => {
+        return `(s=${anchor.startIdx},e=${anchor.endIdx})`;
+      })}`
   );
 
   printInfo(nodeList[focusedNodeIdx]);
 
-  range.setStart(nodeList[focusedNodeIdx], anchorIdx);
-  range.setEnd(nodeList[focusedNodeIdx], anchorIdx);
+  range.setStart(nodeList[focusedNodeIdx], anchor.startIdx);
+  range.setEnd(nodeList[focusedNodeIdx], anchor.endIdx);
 
-  var clickedFirstCharRect = null;
   const rects = range.getClientRects();
-  if (rects.length == 0) return;
-  clickedFirstCharRect = {
-    x: rects[0].x,
-    y: rects[0].y,
-    width: rects[0].width,
-    height: rects[0].height,
-  };
 
-  if (!clickedFirstCharRect) {
+  if (!rects) {
     console.debug("텍스트 노드를 찾을 수 없거나 비어 있음");
     return;
   }
 
-  rect.x = clickedFirstCharRect.x + window.scrollX;
-  rect.y = clickedFirstCharRect.y + window.scrollY;
-  rect.width = clickedFirstCharRect.width;
-  rect.height = clickedFirstCharRect.height;
-
-  drawRectangle();
+  clearAll();
+  for (const rect of rects) {
+    drawRectangle(
+      new Rect(rect.x + window.scrollX, rect.y + window.scrollY, rect.width, rect.height)
+    );
+  }
 }
 
 function printInfo(node: Node): void {

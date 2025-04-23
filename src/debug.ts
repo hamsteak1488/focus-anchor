@@ -23,6 +23,22 @@ const cleanup = createGlobalJsdom(html, {
     sendMessage: () => {},
     onMessage: { addListener: () => {} },
   },
+  storage: {
+    local: {
+      get: (_keys: string | string[] | { [key: string]: any }, callback: (items: any) => void) => {
+        callback({ focusActive: true });
+      },
+      set: (_items: any, callback?: () => void) => {
+        callback?.();
+      },
+      remove: (_keys: string | string[], callback?: () => void) => {
+        callback?.();
+      },
+      clear: (callback?: () => void) => {
+        callback?.();
+      },
+    },
+  },
 };
 
 (async () => {
@@ -37,10 +53,10 @@ const cleanup = createGlobalJsdom(html, {
   } catch (err) {
     console.error(err);
   } finally {
-    // 5) 2초 뒤에 cleanup(), 그 사이에 content.ts 로직(1초 지연 포함)이 다 돌아감
+    // 5) N초 뒤에 cleanup(), 그 사이에 content.ts 로직(1초 지연 포함)이 다 돌아감
     setTimeout(() => {
       cleanup();
       console.log("[debug] jsdom cleaned up");
-    }, 2000);
+    }, 10000);
   }
 })();
