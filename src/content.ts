@@ -1,5 +1,15 @@
 import { Stack } from "./Stack";
 
+class Point {
+  x: number;
+  y: number;
+
+  constructor(x: number, y: number) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
 class Rect {
   x: number;
   y: number;
@@ -11,6 +21,10 @@ class Rect {
     this.y = y;
     this.width = width;
     this.height = height;
+  }
+
+  public toString(): string {
+    return `[x=${this.x}, y=${this.y}, width=${this.width}, height=${this.height}]`;
   }
 }
 
@@ -27,26 +41,51 @@ class Fragment {
 }
 
 class Anchor {
-  startIdx: number;
-  endIdx: number;
+  startNode: Node;
+  startOffsetIdx: number;
+  endNode: Node;
+  endOffsetIdx: number;
 
-  constructor(startIdx: number, endIdx: number) {
-    this.startIdx = startIdx;
-    this.endIdx = endIdx;
+  constructor(startNode: Node, startIdx: number, endNode: Node, endIdx: number) {
+    this.startNode = startNode;
+    this.startOffsetIdx = startIdx;
+    this.endNode = endNode;
+    this.endOffsetIdx = endIdx;
   }
+}
+
+class Delimeter {
+  token: string;
+  exclusiveStartIdx: number;
+
+  constructor(token: string, exclusiveStartIdx: number) {
+    this.token = token;
+    this.exclusiveStartIdx = exclusiveStartIdx;
+  }
+}
+
+enum DrawStrategy {
+  RECT,
+  POLYGON,
 }
 
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
-const anchorIndicesMap = new Map<Node, Anchor[]>();
+const anchorMap = new Map<Node, Anchor[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
-const delimiters: string[] = [". ", "? ", "! "];
+const delimiters: Delimeter[] = [
+  new Delimeter(". ", 1),
+  new Delimeter("? ", 1),
+  new Delimeter("! ", 1),
+];
 
 let focusActive = false;
 let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
+let drawStrategy = DrawStrategy.POLYGON;
 
-const startDelayTime = 0;
+const startDelayTime = 3000;
+const marginX = 2;
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
   focusActive = stored ?? false;
@@ -127,17 +166,26 @@ function traversalPreOrder(node: Node): void {
 
     // 구분자를 통해 이어붙인 조각들이 문장으로 분리되어야 하는지 검사.
     for (const delimeter of delimiters) {
-      if (delimeter.length > fragmentBuffer.length) continue;
+      if (delimeter.token.length > fragmentBuffer.length) continue;
 
       let matchSucceed = true;
-      for (let i = 0; i < delimeter.length; i++) {
-        if (delimeter[i] != fragmentBuffer[fragmentBuffer.length - delimeter.length + i].ch) {
+      for (let i = 0; i < delimeter.token.length; i++) {
+        if (
+          delimeter.token[i] !=
+          fragmentBuffer[fragmentBuffer.length - delimeter.token.length + i].ch
+        ) {
           matchSucceed = false;
           break;
         }
       }
 
       if (matchSucceed) {
+        let popCount = delimeter.token.length - delimeter.exclusiveStartIdx;
+        console.debug(`popCount=${popCount}`);
+        while (popCount--) {
+          fragmentBuffer.pop();
+        }
+
         needSplit = true;
         break;
       }
@@ -154,12 +202,19 @@ function traversalPreOrder(node: Node): void {
     // 공백 문자뿐인 문장은 필요없으므로 검사.
     // 텍스트 없는 분리 태그가 첫번째 조각으로 오면 길이가 0일수도 있으므로 검사.
     if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
-      if (!anchorIndicesMap.get(fragmentBuffer[0].node)) {
-        anchorIndicesMap.set(fragmentBuffer[0].node, []);
+      if (!anchorMap.get(fragmentBuffer[0].node)) {
+        anchorMap.set(fragmentBuffer[0].node, []);
       }
-      anchorIndicesMap
+      anchorMap
         .get(fragmentBuffer[0].node)!
-        .push(new Anchor(fragmentBuffer[0].idx, fragmentBuffer[fragmentBuffer.length - 1].idx + 1));
+        .push(
+          new Anchor(
+            fragmentBuffer[0].node,
+            fragmentBuffer[0].idx,
+            fragmentBuffer[fragmentBuffer.length - 1].node,
+            fragmentBuffer[fragmentBuffer.length - 1].idx + 1
+          )
+        );
     }
     fragmentBuffer = [];
     stringBuffer = "";
@@ -167,12 +222,19 @@ function traversalPreOrder(node: Node): void {
 
   // 마지막 문장이 프레임버퍼에 남아있을 수 있으므로 처리.
   if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
-    if (!anchorIndicesMap.has(fragmentBuffer[0].node)) {
-      anchorIndicesMap.set(fragmentBuffer[0].node, []);
+    if (!anchorMap.has(fragmentBuffer[0].node)) {
+      anchorMap.set(fragmentBuffer[0].node, []);
     }
-    anchorIndicesMap
+    anchorMap
       .get(fragmentBuffer[0].node)!
-      .push(new Anchor(fragmentBuffer[0].idx, fragmentBuffer[fragmentBuffer.length - 1].idx + 1));
+      .push(
+        new Anchor(
+          fragmentBuffer[0].node,
+          fragmentBuffer[0].idx,
+          fragmentBuffer[fragmentBuffer.length - 1].node,
+          fragmentBuffer[fragmentBuffer.length - 1].idx + 1
+        )
+      );
   }
 }
 
@@ -183,17 +245,15 @@ function init(): void {
     nodeIdxMap.set(nodeList[i], i);
   }
 
-  const firstNode = anchorIndicesMap.keys().next().value as Node;
+  const firstNode = anchorMap.keys().next().value as Node;
   focusedNodeIdx = nodeIdxMap.get(firstNode)!;
   focusedSentenceIdx = 0;
 
-  for (const node of anchorIndicesMap.keys()) {
+  for (const node of anchorMap.keys()) {
     console.debug(
-      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorIndicesMap
-        .get(node)!
-        .map((anchor) => {
-          return `(s=${anchor.startIdx},e=${anchor.endIdx})`;
-        })}`
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap.get(node)!.map((anchor) => {
+        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
+      })}`
     );
   }
   console.debug(`nodeList.length=${nodeList.length}`);
@@ -232,10 +292,107 @@ updateCanvasSize();
 
 window.addEventListener("resize", updateCanvasSize);
 
+function getRectFromDomRect(domRect: DOMRect): Rect {
+  return new Rect(
+    domRect.x + window.scrollX,
+    domRect.y + window.scrollY,
+    domRect.width,
+    domRect.height
+  );
+}
+
 function drawRectangle(rect: Rect): void {
   ctx.strokeStyle = "red";
   ctx.lineWidth = 3;
   ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function drawPolygon(vertices: Point[]): void {
+  if (vertices.length == 0) return;
+
+  ctx.strokeStyle = "red";
+  ctx.lineWidth = 3;
+
+  ctx.beginPath();
+  ctx.moveTo(vertices[vertices.length - 1].x, vertices[vertices.length - 1].y);
+  for (let i = 0; i < vertices.length; i++) {
+    ctx.lineTo(vertices[i].x, vertices[i].y);
+  }
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawClientRects(domRects: DOMRectList): void {
+  const rects: Rect[] = [];
+  for (const domRect of domRects) {
+    rects.push(getRectFromDomRect(domRect));
+  }
+
+  if (drawStrategy == DrawStrategy.RECT) {
+    for (const rect of rects) {
+      drawRectangle(rect);
+    }
+  }
+  if (drawStrategy == DrawStrategy.POLYGON) {
+    /*
+      초기 아이디어:
+        접점 생길 수 있도록, 스케일 커진 사각형 생성.
+        각 사각형을 같은층끼리 먼저 병합.
+        제일 위층부터, 아래쪽 두 꼭짓점을 정점 버퍼에 추가, 그리고 다음층이 존재한다면 다음층 위쪽 두 꼭짓점과 X값 비교.
+        만약 충돌한다면 다각형 정점 버퍼에 추가. (하나는 왼쪽, 오른쪽 리스트에 각각 삽입)
+        충돌하지 않는다면 다각형 정점 버퍼에 있는 것들로 다각형 그리기.
+        제일 아랫층까지 가면 방문 끝내고, 정점 버퍼로 다각형 그리기.
+        다각형 그릴 때 오른쪽 리스트는 정방향으로, 오른쪽 마지막->왼쪽 마지막, 왼쪽 리스트 역방향으로, 왼쪽 처음->오른쪽 처음
+    */
+
+    const leftVertices: Point[] = [];
+    const rightVertices: Point[] = [];
+
+    for (let i = 0; i < rects.length; i++) {
+      const rect = rects[i];
+
+      leftVertices.push(new Point(rect.x - marginX, rect.y));
+      rightVertices.push(new Point(rect.x + rect.width + marginX, rect.y));
+
+      leftVertices.push(new Point(rect.x - marginX, rect.y + rect.height));
+      rightVertices.push(new Point(rect.x + rect.width + marginX, rect.y + rect.height));
+
+      if (i + 1 < rects.length) {
+        const nextRect = rects[i + 1];
+
+        // 충돌안하면 사각형 분리.
+        if (rect.x + rect.width < nextRect.x || rect.x > nextRect.x + nextRect.width) {
+          const polygonVertices: Point[] = [];
+          for (let i = 0; i < rightVertices.length; i++) {
+            polygonVertices.push(rightVertices[i]);
+          }
+          for (let i = leftVertices.length - 1; i >= 0; i--) {
+            polygonVertices.push(leftVertices[i]);
+          }
+          drawPolygon(polygonVertices);
+          leftVertices.splice(0, leftVertices.length);
+          rightVertices.splice(0, rightVertices.length);
+        }
+        // 충돌할경우, 직각을 유지하기 위해 중간 Y값을 가진 정점 추가.
+        else {
+          const middleY = (rect.y + rect.height + nextRect.y) / 2;
+          leftVertices.push(new Point(rect.x - marginX, middleY));
+          leftVertices.push(new Point(nextRect.x - marginX, middleY));
+          rightVertices.push(new Point(rect.x + rect.width + marginX, middleY));
+          rightVertices.push(new Point(nextRect.x + nextRect.width + marginX, middleY));
+        }
+      }
+    }
+
+    const polygonVertices: Point[] = [];
+    for (let i = 0; i < rightVertices.length; i++) {
+      polygonVertices.push(rightVertices[i]);
+    }
+    for (let i = leftVertices.length - 1; i >= 0; i--) {
+      polygonVertices.push(leftVertices[i]);
+    }
+    drawPolygon(polygonVertices);
+  }
 }
 
 function clearAll(): void {
@@ -259,7 +416,7 @@ function moveFocus(offset: number) {
     // 다음 목적지가 현재 노드 내 앵커인덱스 리스트에 존재할 경우.
     if (
       focusedSentenceIdx + dir >= 0 &&
-      focusedSentenceIdx + dir <= anchorIndicesMap.get(focusedNode)!.length - 1
+      focusedSentenceIdx + dir <= anchorMap.get(focusedNode)!.length - 1
     ) {
       focusedSentenceIdx += dir;
       cnt--;
@@ -276,7 +433,7 @@ function moveFocus(offset: number) {
         break;
       }
 
-      if (!anchorIndicesMap.has(nodeList[nextFosuedNodeIdx + dir])) {
+      if (!anchorMap.has(nodeList[nextFosuedNodeIdx + dir])) {
         console.debug(`${nextFosuedNodeIdx + dir} doesn't have anchorIndices`);
         nextFosuedNodeIdx += dir;
         continue;
@@ -287,7 +444,7 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx = anchorIndicesMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx = anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
@@ -309,21 +466,21 @@ function updateFocusedNode(): void {
   console.debug(`focusedSentenceIdx=${focusedSentenceIdx}`);
 
   const range = document.createRange();
-  const anchor = anchorIndicesMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
+  const anchor = anchorMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
 
   console.debug(`anchor=${anchor}`);
   console.debug(
-    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorIndicesMap
+    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorMap
       .get(nodeList[focusedNodeIdx])!
       .map((anchor) => {
-        return `(s=${anchor.startIdx},e=${anchor.endIdx})`;
+        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
       })}`
   );
 
   printInfo(nodeList[focusedNodeIdx]);
 
-  range.setStart(nodeList[focusedNodeIdx], anchor.startIdx);
-  range.setEnd(nodeList[focusedNodeIdx], anchor.endIdx);
+  range.setStart(anchor.startNode, anchor.startOffsetIdx);
+  range.setEnd(anchor.endNode, anchor.endOffsetIdx);
 
   const rects = range.getClientRects();
 
@@ -333,21 +490,7 @@ function updateFocusedNode(): void {
   }
 
   clearAll();
-  for (const rect of rects) {
-    drawRectangle(
-      new Rect(rect.x + window.scrollX, rect.y + window.scrollY, rect.width, rect.height)
-    );
-  }
-}
-
-function printInfo(node: Node): void {
-  console.debug(`
-    --- Node Info ---\n
-    node.nodeType=${node.nodeType}
-    node.nodeName=${node.nodeName}
-    node.parentNode?.nodeType=${node.parentNode?.nodeType}
-    node.parentNode?.nodeName=${node.parentNode?.nodeName}
-    -------------`);
+  drawClientRects(rects);
 }
 
 document.addEventListener("mouseup", function (e) {
@@ -365,7 +508,7 @@ document.addEventListener("mouseup", function (e) {
   let idx = nodeIdxMap.get(clickedNode);
 
   if (!idx) return;
-  while (idx < nodeList.length && !anchorIndicesMap.has(nodeList[idx])) idx++;
+  while (idx < nodeList.length && !anchorMap.has(nodeList[idx])) idx++;
 
   focusedNodeIdx = idx;
   focusedSentenceIdx = 0;
@@ -397,3 +540,13 @@ document.addEventListener("keydown", function (e) {
   }
   updateFocusedNode();
 });
+
+function printInfo(node: Node): void {
+  console.debug(`
+    --- Node Info ---\n
+    node.nodeType=${node.nodeType}
+    node.nodeName=${node.nodeName}
+    node.parentNode?.nodeType=${node.parentNode?.nodeType}
+    node.parentNode?.nodeName=${node.parentNode?.nodeName}
+    -------------`);
+}

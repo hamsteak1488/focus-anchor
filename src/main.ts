@@ -15,5 +15,5 @@ btn.addEventListener("click", async () => {
 });
 
 function updateIndicator(active: boolean) {
-  btn.style.backgroundColor = active ? "green" : "red";
+  btn.style.backgroundColor = active ? "chartreuse" : "darkorange";
 }
