@@ -23,7 +23,20 @@ class Rect {
     this.height = height;
   }
 
-  public toString(): string {
+  get left(): number {
+    return this.x;
+  }
+  get top(): number {
+    return this.y;
+  }
+  get right(): number {
+    return this.x + this.width;
+  }
+  get bottom(): number {
+    return this.y + this.height;
+  }
+
+  toString(): string {
     return `[x=${this.x}, y=${this.y}, width=${this.width}, height=${this.height}]`;
   }
 }
@@ -46,7 +59,12 @@ class Anchor {
   endNode: Node;
   endOffsetIdx: number;
 
-  constructor(startNode: Node, startIdx: number, endNode: Node, endIdx: number) {
+  constructor(
+    startNode: Node,
+    startIdx: number,
+    endNode: Node,
+    endIdx: number
+  ) {
     this.startNode = startNode;
     this.startOffsetIdx = startIdx;
     this.endNode = endNode;
@@ -84,7 +102,7 @@ let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
 let drawStrategy = DrawStrategy.POLYGON;
 
-const startDelayTime = 3000;
+const startDelayTime = 0;
 const marginX = 2;
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
@@ -125,7 +143,9 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack
+          .peek()
+          .push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -142,7 +162,10 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
+    if (
+      child.nodeType != Node.TEXT_NODE &&
+      !nonSplitTagList.includes(child.nodeName)
+    ) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -251,9 +274,11 @@ function init(): void {
 
   for (const node of anchorMap.keys()) {
     console.debug(
-      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap.get(node)!.map((anchor) => {
-        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
-      })}`
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap
+        .get(node)!
+        .map((anchor) => {
+          return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
+        })}`
     );
   }
   console.debug(`nodeList.length=${nodeList.length}`);
@@ -285,8 +310,14 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  canvas.width = Math.max(
+    document.documentElement.scrollWidth,
+    document.body.scrollWidth
+  );
+  canvas.height = Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight
+  );
 }
 updateCanvasSize();
 
@@ -328,6 +359,8 @@ function drawClientRects(domRects: DOMRectList): void {
     rects.push(getRectFromDomRect(domRect));
   }
 
+  if (rects.length == 0) return;
+
   if (drawStrategy == DrawStrategy.RECT) {
     for (const rect of rects) {
       drawRectangle(rect);
@@ -345,23 +378,58 @@ function drawClientRects(domRects: DOMRectList): void {
         다각형 그릴 때 오른쪽 리스트는 정방향으로, 오른쪽 마지막->왼쪽 마지막, 왼쪽 리스트 역방향으로, 왼쪽 처음->오른쪽 처음
     */
 
+    rects.sort((a, b) => {
+      return a.y - b.y;
+    });
+
+    const floorSeperatedRects: Rect[] = [rects[0]];
+    // 같은 층 사각형 병합
+    for (let i = 1; i < rects.length; i++) {
+      const rect = floorSeperatedRects[floorSeperatedRects.length - 1];
+      // 옆면이 겹치지 않는 경우: 바로 리스트에 추가.
+      if (rect.bottom < rects[i].top || rect.top > rects[i].bottom) {
+        floorSeperatedRects.push(rects[i]);
+      }
+      // 옆면이 겹치는 경우. 바운딩 사각형 추가.
+      else {
+        const newLeft = Math.min(rect.left, rects[i].left);
+        const newTop = Math.min(rect.top, rects[i].top);
+        const newRight = Math.max(rect.right, rects[i].right);
+        const newBottom = Math.max(rect.bottom, rects[i].bottom);
+
+        const newRect = new Rect(
+          newLeft,
+          newTop,
+          newRight - newLeft,
+          newBottom - newTop
+        );
+        floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
+      }
+    }
+
+    // 폴리곤 정점 구성
     const leftVertices: Point[] = [];
     const rightVertices: Point[] = [];
 
-    for (let i = 0; i < rects.length; i++) {
-      const rect = rects[i];
+    for (let i = 0; i < floorSeperatedRects.length; i++) {
+      const rect = floorSeperatedRects[i];
 
       leftVertices.push(new Point(rect.x - marginX, rect.y));
       rightVertices.push(new Point(rect.x + rect.width + marginX, rect.y));
 
       leftVertices.push(new Point(rect.x - marginX, rect.y + rect.height));
-      rightVertices.push(new Point(rect.x + rect.width + marginX, rect.y + rect.height));
+      rightVertices.push(
+        new Point(rect.x + rect.width + marginX, rect.y + rect.height)
+      );
 
-      if (i + 1 < rects.length) {
-        const nextRect = rects[i + 1];
+      if (i + 1 < floorSeperatedRects.length) {
+        const nextRect = floorSeperatedRects[i + 1];
 
         // 충돌안하면 사각형 분리.
-        if (rect.x + rect.width < nextRect.x || rect.x > nextRect.x + nextRect.width) {
+        if (
+          rect.x + rect.width < nextRect.x ||
+          rect.x > nextRect.x + nextRect.width
+        ) {
           const polygonVertices: Point[] = [];
           for (let i = 0; i < rightVertices.length; i++) {
             polygonVertices.push(rightVertices[i]);
@@ -379,7 +447,9 @@ function drawClientRects(domRects: DOMRectList): void {
           leftVertices.push(new Point(rect.x - marginX, middleY));
           leftVertices.push(new Point(nextRect.x - marginX, middleY));
           rightVertices.push(new Point(rect.x + rect.width + marginX, middleY));
-          rightVertices.push(new Point(nextRect.x + nextRect.width + marginX, middleY));
+          rightVertices.push(
+            new Point(nextRect.x + nextRect.width + marginX, middleY)
+          );
         }
       }
     }
@@ -428,7 +498,10 @@ function moveFocus(offset: number) {
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
     while (true) {
-      if (nextFosuedNodeIdx + dir < 0 || nextFosuedNodeIdx + dir > nodeList.length - 1) {
+      if (
+        nextFosuedNodeIdx + dir < 0 ||
+        nextFosuedNodeIdx + dir > nodeList.length - 1
+      ) {
         endOfNode = true;
         break;
       }
@@ -444,7 +517,8 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx = anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx =
+          anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
