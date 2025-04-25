@@ -78,6 +78,8 @@ class Delimeter {
 }
 
 enum DrawStrategy {
+  UNDERLINE,
+  UNDERLINE_FIXED,
   RECT,
   POLYGON,
 }
@@ -95,11 +97,12 @@ const delimiters: Delimeter[] = [
 let focusActive = false;
 let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
-let drawStrategy = DrawStrategy.POLYGON;
+let drawStrategy = DrawStrategy.UNDERLINE_FIXED;
 
 const startDelayTime = 0;
 const marginX = 2;
-const marginY = 2;
+const marginY = 1;
+const fixedUnderlineLength = 20;
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
   focusActive = stored ?? false;
@@ -343,6 +346,26 @@ function drawClientRects(domRects: DOMRectList): void {
   }
 
   if (rects.length == 0) return;
+
+  if (drawStrategy == DrawStrategy.UNDERLINE) {
+    for (const rect of rects) {
+      const polygonVertices: Point[] = [];
+      polygonVertices.push(
+        new Point(rect.left, rect.bottom + marginY),
+        new Point(rect.right, rect.bottom + marginY)
+      );
+      drawPolygon(polygonVertices);
+    }
+  }
+
+  if (drawStrategy == DrawStrategy.UNDERLINE_FIXED) {
+    const polygonVertices: Point[] = [];
+    polygonVertices.push(
+      new Point(rects[0].left, rects[0].bottom + marginY),
+      new Point(rects[0].left + fixedUnderlineLength, rects[0].bottom + marginY)
+    );
+    drawPolygon(polygonVertices);
+  }
 
   if (drawStrategy == DrawStrategy.RECT) {
     for (const rect of rects) {
