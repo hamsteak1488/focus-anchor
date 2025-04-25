@@ -59,12 +59,7 @@ class Anchor {
   endNode: Node;
   endOffsetIdx: number;
 
-  constructor(
-    startNode: Node,
-    startIdx: number,
-    endNode: Node,
-    endIdx: number
-  ) {
+  constructor(startNode: Node, startIdx: number, endNode: Node, endIdx: number) {
     this.startNode = startNode;
     this.startOffsetIdx = startIdx;
     this.endNode = endNode;
@@ -104,6 +99,7 @@ let drawStrategy = DrawStrategy.POLYGON;
 
 const startDelayTime = 0;
 const marginX = 2;
+const marginY = 2;
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
   focusActive = stored ?? false;
@@ -143,9 +139,7 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack
-          .peek()
-          .push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -162,10 +156,7 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (
-      child.nodeType != Node.TEXT_NODE &&
-      !nonSplitTagList.includes(child.nodeName)
-    ) {
+    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -274,11 +265,9 @@ function init(): void {
 
   for (const node of anchorMap.keys()) {
     console.debug(
-      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap
-        .get(node)!
-        .map((anchor) => {
-          return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
-        })}`
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap.get(node)!.map((anchor) => {
+        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
+      })}`
     );
   }
   console.debug(`nodeList.length=${nodeList.length}`);
@@ -310,14 +299,8 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(
-    document.documentElement.scrollWidth,
-    document.body.scrollWidth
-  );
-  canvas.height = Math.max(
-    document.documentElement.scrollHeight,
-    document.body.scrollHeight
-  );
+  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
 updateCanvasSize();
 
@@ -397,12 +380,7 @@ function drawClientRects(domRects: DOMRectList): void {
         const newRight = Math.max(rect.right, rects[i].right);
         const newBottom = Math.max(rect.bottom, rects[i].bottom);
 
-        const newRect = new Rect(
-          newLeft,
-          newTop,
-          newRight - newLeft,
-          newBottom - newTop
-        );
+        const newRect = new Rect(newLeft, newTop, newRight - newLeft, newBottom - newTop);
         floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
       }
     }
@@ -414,22 +392,17 @@ function drawClientRects(domRects: DOMRectList): void {
     for (let i = 0; i < floorSeperatedRects.length; i++) {
       const rect = floorSeperatedRects[i];
 
-      leftVertices.push(new Point(rect.x - marginX, rect.y));
-      rightVertices.push(new Point(rect.x + rect.width + marginX, rect.y));
+      leftVertices.push(new Point(rect.left, rect.top));
+      rightVertices.push(new Point(rect.right, rect.top));
 
-      leftVertices.push(new Point(rect.x - marginX, rect.y + rect.height));
-      rightVertices.push(
-        new Point(rect.x + rect.width + marginX, rect.y + rect.height)
-      );
+      leftVertices.push(new Point(rect.left, rect.bottom));
+      rightVertices.push(new Point(rect.right, rect.bottom));
 
       if (i + 1 < floorSeperatedRects.length) {
         const nextRect = floorSeperatedRects[i + 1];
 
         // 충돌안하면 사각형 분리.
-        if (
-          rect.x + rect.width < nextRect.x ||
-          rect.x > nextRect.x + nextRect.width
-        ) {
+        if (rect.right < nextRect.left || rect.left > nextRect.right) {
           const polygonVertices: Point[] = [];
           for (let i = 0; i < rightVertices.length; i++) {
             polygonVertices.push(rightVertices[i]);
@@ -443,24 +416,43 @@ function drawClientRects(domRects: DOMRectList): void {
         }
         // 충돌할경우, 직각을 유지하기 위해 중간 Y값을 가진 정점 추가.
         else {
-          const middleY = (rect.y + rect.height + nextRect.y) / 2;
-          leftVertices.push(new Point(rect.x - marginX, middleY));
-          leftVertices.push(new Point(nextRect.x - marginX, middleY));
-          rightVertices.push(new Point(rect.x + rect.width + marginX, middleY));
-          rightVertices.push(
-            new Point(nextRect.x + nextRect.width + marginX, middleY)
-          );
+          const midY = (rect.y + rect.height + nextRect.y) / 2;
+          leftVertices.push(new Point(rect.left, midY));
+          leftVertices.push(new Point(nextRect.left, midY));
+          rightVertices.push(new Point(rect.right, midY));
+          rightVertices.push(new Point(nextRect.right, midY));
         }
       }
     }
 
     const polygonVertices: Point[] = [];
+
+    let minY = -1,
+      maxY = -1;
     for (let i = 0; i < rightVertices.length; i++) {
+      rightVertices[i].x += marginX;
+      if (minY == -1 || rightVertices[i].y < minY) {
+        minY = rightVertices[i].y;
+      }
+      if (maxY == -1 || rightVertices[i].y > maxY) {
+        maxY = rightVertices[i].y;
+      }
       polygonVertices.push(rightVertices[i]);
     }
     for (let i = leftVertices.length - 1; i >= 0; i--) {
+      leftVertices[i].x -= marginX;
+      if (minY == -1 || leftVertices[i].y < minY) {
+        minY = leftVertices[i].y;
+      }
+      if (maxY == -1 || leftVertices[i].y > maxY) {
+        maxY = leftVertices[i].y;
+      }
       polygonVertices.push(leftVertices[i]);
     }
+    polygonVertices.forEach((v) => {
+      if (v.y == minY) v.y -= marginY;
+      if (v.y == maxY) v.y += marginY;
+    });
     drawPolygon(polygonVertices);
   }
 }
@@ -498,10 +490,7 @@ function moveFocus(offset: number) {
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
     while (true) {
-      if (
-        nextFosuedNodeIdx + dir < 0 ||
-        nextFosuedNodeIdx + dir > nodeList.length - 1
-      ) {
+      if (nextFosuedNodeIdx + dir < 0 || nextFosuedNodeIdx + dir > nodeList.length - 1) {
         endOfNode = true;
         break;
       }
@@ -517,8 +506,7 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx =
-          anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx = anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
