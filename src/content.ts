@@ -307,18 +307,7 @@ function drawClientRects(domRects: DOMRectList): void {
       drawRectangle(rect);
     }
   }
-  if (drawStrategy == DrawStrategy.POLYGON) {
-    /*
-      초기 아이디어:
-        접점 생길 수 있도록, 스케일 커진 사각형 생성.
-        각 사각형을 같은층끼리 먼저 병합.
-        제일 위층부터, 아래쪽 두 꼭짓점을 정점 버퍼에 추가, 그리고 다음층이 존재한다면 다음층 위쪽 두 꼭짓점과 X값 비교.
-        만약 충돌한다면 다각형 정점 버퍼에 추가. (하나는 왼쪽, 오른쪽 리스트에 각각 삽입)
-        충돌하지 않는다면 다각형 정점 버퍼에 있는 것들로 다각형 그리기.
-        제일 아랫층까지 가면 방문 끝내고, 정점 버퍼로 다각형 그리기.
-        다각형 그릴 때 오른쪽 리스트는 정방향으로, 오른쪽 마지막->왼쪽 마지막, 왼쪽 리스트 역방향으로, 왼쪽 처음->오른쪽 처음
-    */
-
+  if (drawStrategy == DrawStrategy.RECT_MERGE) {
     rects.sort((a, b) => {
       return a.y - b.y;
     });
