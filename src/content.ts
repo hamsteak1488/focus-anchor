@@ -1,88 +1,10 @@
+import { Anchor } from "./Anchor";
+import { Delimeter } from "./Delimeter";
+import { DrawStrategy } from "./DrawStrategy.enum";
+import { Fragment } from "./Fragment";
+import { Point } from "./Point";
+import { Rect } from "./Rect";
 import { Stack } from "./Stack";
-
-class Point {
-  x: number;
-  y: number;
-
-  constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
-  }
-}
-
-class Rect {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-
-  constructor(x: number, y: number, width: number, height: number) {
-    this.x = x;
-    this.y = y;
-    this.width = width;
-    this.height = height;
-  }
-
-  get left(): number {
-    return this.x;
-  }
-  get top(): number {
-    return this.y;
-  }
-  get right(): number {
-    return this.x + this.width;
-  }
-  get bottom(): number {
-    return this.y + this.height;
-  }
-
-  toString(): string {
-    return `[x=${this.x}, y=${this.y}, width=${this.width}, height=${this.height}]`;
-  }
-}
-
-class Fragment {
-  ch: string;
-  node: Node;
-  idx: number;
-
-  constructor(ch: string, node: Node, idx: number) {
-    this.ch = ch;
-    this.node = node;
-    this.idx = idx;
-  }
-}
-
-class Anchor {
-  startNode: Node;
-  startOffsetIdx: number;
-  endNode: Node;
-  endOffsetIdx: number;
-
-  constructor(startNode: Node, startIdx: number, endNode: Node, endIdx: number) {
-    this.startNode = startNode;
-    this.startOffsetIdx = startIdx;
-    this.endNode = endNode;
-    this.endOffsetIdx = endIdx;
-  }
-}
-
-class Delimeter {
-  token: string;
-  exclusiveStartIdx: number;
-
-  constructor(token: string, exclusiveStartIdx: number) {
-    this.token = token;
-    this.exclusiveStartIdx = exclusiveStartIdx;
-  }
-}
-
-enum DrawStrategy {
-  UNDERLINE,
-  UNDERLINE_FIXED,
-  RECT,
-  POLYGON,
-}
 
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
@@ -142,7 +64,9 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack
+          .peek()
+          .push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -159,7 +83,10 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
+    if (
+      child.nodeType != Node.TEXT_NODE &&
+      !nonSplitTagList.includes(child.nodeName)
+    ) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -268,9 +195,11 @@ function init(): void {
 
   for (const node of anchorMap.keys()) {
     console.debug(
-      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap.get(node)!.map((anchor) => {
-        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
-      })}`
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap
+        .get(node)!
+        .map((anchor) => {
+          return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
+        })}`
     );
   }
   console.debug(`nodeList.length=${nodeList.length}`);
@@ -302,8 +231,14 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+  canvas.width = Math.max(
+    document.documentElement.scrollWidth,
+    document.body.scrollWidth
+  );
+  canvas.height = Math.max(
+    document.documentElement.scrollHeight,
+    document.body.scrollHeight
+  );
 }
 updateCanvasSize();
 
@@ -403,7 +338,12 @@ function drawClientRects(domRects: DOMRectList): void {
         const newRight = Math.max(rect.right, rects[i].right);
         const newBottom = Math.max(rect.bottom, rects[i].bottom);
 
-        const newRect = new Rect(newLeft, newTop, newRight - newLeft, newBottom - newTop);
+        const newRect = new Rect(
+          newLeft,
+          newTop,
+          newRight - newLeft,
+          newBottom - newTop
+        );
         floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
       }
     }
@@ -513,7 +453,10 @@ function moveFocus(offset: number) {
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
     while (true) {
-      if (nextFosuedNodeIdx + dir < 0 || nextFosuedNodeIdx + dir > nodeList.length - 1) {
+      if (
+        nextFosuedNodeIdx + dir < 0 ||
+        nextFosuedNodeIdx + dir > nodeList.length - 1
+      ) {
         endOfNode = true;
         break;
       }
@@ -529,7 +472,8 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx = anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx =
+          anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
