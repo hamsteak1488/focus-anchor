@@ -1,6 +1,6 @@
 import { Anchor } from "./Anchor";
 import { Delimeter } from "./Delimeter";
-import { DrawStrategy } from "./DrawStrategy.enum";
+import { FigureStrategy } from "./FigureStrategy.enum";
 import { Fragment } from "./Fragment";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
@@ -9,7 +9,9 @@ import { Stack } from "./Stack";
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<Node, Anchor[]>();
+const rectMap = new Map<Anchor, Rect[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
+const ignoreSplitTagList: string[] = ["SCRIPT"];
 const delimiters: Delimeter[] = [
   new Delimeter(". ", 1),
   new Delimeter("? ", 1),
@@ -19,43 +21,18 @@ const delimiters: Delimeter[] = [
 let focusActive = false;
 let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
-let drawStrategy = DrawStrategy.UNDERLINE_FIXED;
+let figureStrategy =
+  FigureStrategy[(process.env.FIGURE_STRATEGY as keyof typeof FigureStrategy) ?? "UNDERLINE"];
 
 const startDelayTime = 0;
-const marginX = 2;
-const marginY = 1;
+const marginX = parseInt(process.env.MARGIN_X ?? "0");
+const marginY = parseInt(process.env.MARGIN_Y ?? "0");
 const fixedUnderlineLength = 20;
-
-chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
-  focusActive = stored ?? false;
-  if (focusActive) {
-    document.documentElement.classList.add("focus-anchor__active");
-  }
-});
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (msg.type === "toggle-focus") {
-    focusActive = !focusActive;
-
-    if (focusActive) {
-      document.documentElement.classList.add("focus-anchor__active");
-      activateFocus();
-    } else {
-      document.documentElement.classList.remove("focus-anchor__active");
-      deactivateFocus();
-    }
-
-    chrome.storage.local.set({ focusActive });
-
-    sendResponse({ isActive: focusActive });
-  } else if (msg.type === "get-focus-state") {
-    sendResponse({ isActive: focusActive });
-  }
-});
 
 let fragmentListStack = new Stack<Fragment[]>();
 
 function traversalPreOrder(node: Node): void {
-  if (node.nodeName == "SCRIPT") return;
+  if (ignoreSplitTagList.includes(node.nodeName)) return;
 
   nodeList.push(node);
 
@@ -64,9 +41,7 @@ function traversalPreOrder(node: Node): void {
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
       for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack
-          .peek()
-          .push(new Fragment(node.textContent![i], node, i));
+        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
       }
     }
     return;
@@ -83,10 +58,7 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (
-      child.nodeType != Node.TEXT_NODE &&
-      !nonSplitTagList.includes(child.nodeName)
-    ) {
+    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
@@ -195,25 +167,62 @@ function init(): void {
 
   for (const node of anchorMap.keys()) {
     console.debug(
-      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap
-        .get(node)!
-        .map((anchor) => {
-          return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
-        })}`
+      `nodeList[${nodeIdxMap.get(node)}]: anchorIndices=${anchorMap.get(node)!.map((anchor) => {
+        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
+      })}`
     );
   }
   console.debug(`nodeList.length=${nodeList.length}`);
 }
 
-window.addEventListener(
-  "load",
-  () => {
-    setTimeout(() => {
-      init();
-    }, startDelayTime);
-  },
-  { once: true }
-);
+function getRectsFromAnchor(anchor: Anchor): Rect[] {
+  if (rectMap.has(anchor)) {
+    return rectMap.get(anchor)!;
+  }
+
+  const range = document.createRange();
+  range.setStart(anchor.startNode, anchor.startOffsetIdx);
+  range.setEnd(anchor.endNode, anchor.endOffsetIdx);
+
+  const domRects = range.getClientRects();
+  if (!domRects) {
+    console.warn("getRectsFromAnchor: Failed to get client rects from a anchor");
+    return [];
+  }
+
+  const rects: Rect[] = [];
+  for (const domRect of domRects) {
+    rects.push(getRectFromDomRect(domRect));
+  }
+
+  rects.sort((a, b) => {
+    return a.y - b.y;
+  });
+
+  const floorSeperatedRects: Rect[] = [rects[0]];
+  // 같은 층 사각형 병합
+  for (let i = 1; i < rects.length; i++) {
+    const rect = floorSeperatedRects[floorSeperatedRects.length - 1];
+    // 옆면이 겹치지 않는 경우: 바로 리스트에 추가.
+    if (rect.bottom < rects[i].top || rect.top > rects[i].bottom) {
+      floorSeperatedRects.push(rects[i]);
+    }
+    // 옆면이 겹치는 경우. 바운딩 사각형 추가.
+    else {
+      const newLeft = Math.min(rect.left, rects[i].left);
+      const newTop = Math.min(rect.top, rects[i].top);
+      const newRight = Math.max(rect.right, rects[i].right);
+      const newBottom = Math.max(rect.bottom, rects[i].bottom);
+
+      const newRect = new Rect(newLeft, newTop, newRight - newLeft, newBottom - newTop);
+      floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
+    }
+  }
+
+  rectMap.set(anchor, floorSeperatedRects);
+
+  return floorSeperatedRects;
+}
 
 let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
 if (!canvas) {
@@ -231,18 +240,10 @@ const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
 
 function updateCanvasSize() {
   // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(
-    document.documentElement.scrollWidth,
-    document.body.scrollWidth
-  );
-  canvas.height = Math.max(
-    document.documentElement.scrollHeight,
-    document.body.scrollHeight
-  );
+  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
 updateCanvasSize();
-
-window.addEventListener("resize", updateCanvasSize);
 
 function getRectFromDomRect(domRect: DOMRect): Rect {
   return new Rect(
@@ -274,15 +275,10 @@ function drawPolygon(vertices: Point[]): void {
   ctx.stroke();
 }
 
-function drawClientRects(domRects: DOMRectList): void {
-  const rects: Rect[] = [];
-  for (const domRect of domRects) {
-    rects.push(getRectFromDomRect(domRect));
-  }
-
+function drawRects(rects: Rect[]): void {
   if (rects.length == 0) return;
 
-  if (drawStrategy == DrawStrategy.UNDERLINE) {
+  if (figureStrategy == FigureStrategy.UNDERLINE) {
     for (const rect of rects) {
       const polygonVertices: Point[] = [];
       polygonVertices.push(
@@ -293,7 +289,7 @@ function drawClientRects(domRects: DOMRectList): void {
     }
   }
 
-  if (drawStrategy == DrawStrategy.UNDERLINE_FIXED) {
+  if (figureStrategy == FigureStrategy.UNDERLINE_FIXED) {
     const polygonVertices: Point[] = [];
     polygonVertices.push(
       new Point(rects[0].left, rects[0].bottom + marginY),
@@ -302,47 +298,24 @@ function drawClientRects(domRects: DOMRectList): void {
     drawPolygon(polygonVertices);
   }
 
-  if (drawStrategy == DrawStrategy.RECT) {
+  if (figureStrategy == FigureStrategy.RECT) {
     for (const rect of rects) {
+      rect.x -= marginX;
+      rect.y -= marginY;
+      rect.width += marginX * 2;
+      rect.height += marginY * 2;
+
       drawRectangle(rect);
     }
   }
-  if (drawStrategy == DrawStrategy.RECT_MERGE) {
-    rects.sort((a, b) => {
-      return a.y - b.y;
-    });
 
-    const floorSeperatedRects: Rect[] = [rects[0]];
-    // 같은 층 사각형 병합
-    for (let i = 1; i < rects.length; i++) {
-      const rect = floorSeperatedRects[floorSeperatedRects.length - 1];
-      // 옆면이 겹치지 않는 경우: 바로 리스트에 추가.
-      if (rect.bottom < rects[i].top || rect.top > rects[i].bottom) {
-        floorSeperatedRects.push(rects[i]);
-      }
-      // 옆면이 겹치는 경우. 바운딩 사각형 추가.
-      else {
-        const newLeft = Math.min(rect.left, rects[i].left);
-        const newTop = Math.min(rect.top, rects[i].top);
-        const newRight = Math.max(rect.right, rects[i].right);
-        const newBottom = Math.max(rect.bottom, rects[i].bottom);
-
-        const newRect = new Rect(
-          newLeft,
-          newTop,
-          newRight - newLeft,
-          newBottom - newTop
-        );
-        floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
-      }
-    }
-
+  if (figureStrategy == FigureStrategy.RECT_MERGE) {
     // 폴리곤 정점 구성
     const leftVertices: Point[] = [];
     const rightVertices: Point[] = [];
 
-    for (let i = 0; i < floorSeperatedRects.length; i++) {
-      const rect = floorSeperatedRects[i];
+    for (let i = 0; i < rects.length; i++) {
+      const rect = rects[i];
 
       leftVertices.push(new Point(rect.left, rect.top));
       rightVertices.push(new Point(rect.right, rect.top));
@@ -350,25 +323,40 @@ function drawClientRects(domRects: DOMRectList): void {
       leftVertices.push(new Point(rect.left, rect.bottom));
       rightVertices.push(new Point(rect.right, rect.bottom));
 
-      if (i + 1 < floorSeperatedRects.length) {
-        const nextRect = floorSeperatedRects[i + 1];
+      if (i + 1 < rects.length) {
+        const nextRect = rects[i + 1];
 
         // 충돌안하면 사각형 분리.
         if (rect.right < nextRect.left || rect.left > nextRect.right) {
+          leftVertices[0].y -= marginY;
+          leftVertices[leftVertices.length - 1].y += marginY;
+          rightVertices[0].y -= marginY;
+          rightVertices[rightVertices.length - 1].y += marginY;
+          for (const v of leftVertices) {
+            v.x -= marginX;
+          }
+          for (const v of rightVertices) {
+            v.x += marginX;
+          }
+
           const polygonVertices: Point[] = [];
+
           for (let i = 0; i < rightVertices.length; i++) {
             polygonVertices.push(rightVertices[i]);
           }
           for (let i = leftVertices.length - 1; i >= 0; i--) {
             polygonVertices.push(leftVertices[i]);
           }
+
           drawPolygon(polygonVertices);
+
           leftVertices.splice(0, leftVertices.length);
           rightVertices.splice(0, rightVertices.length);
         }
         // 충돌할경우, 직각을 유지하기 위해 중간 Y값을 가진 정점 추가.
         else {
           const midY = (rect.y + rect.height + nextRect.y) / 2;
+
           leftVertices.push(new Point(rect.left, midY));
           leftVertices.push(new Point(nextRect.left, midY));
           rightVertices.push(new Point(rect.right, midY));
@@ -377,34 +365,24 @@ function drawClientRects(domRects: DOMRectList): void {
       }
     }
 
-    const polygonVertices: Point[] = [];
+    leftVertices[0].y -= marginY;
+    leftVertices[leftVertices.length - 1].y += marginY;
+    rightVertices[0].y -= marginY;
+    rightVertices[rightVertices.length - 1].y += marginY;
+    for (const v of leftVertices) {
+      v.x -= marginX;
+    }
+    for (const v of rightVertices) {
+      v.x += marginX;
+    }
 
-    let minY = -1,
-      maxY = -1;
+    const polygonVertices: Point[] = [];
     for (let i = 0; i < rightVertices.length; i++) {
-      rightVertices[i].x += marginX;
-      if (minY == -1 || rightVertices[i].y < minY) {
-        minY = rightVertices[i].y;
-      }
-      if (maxY == -1 || rightVertices[i].y > maxY) {
-        maxY = rightVertices[i].y;
-      }
       polygonVertices.push(rightVertices[i]);
     }
     for (let i = leftVertices.length - 1; i >= 0; i--) {
-      leftVertices[i].x -= marginX;
-      if (minY == -1 || leftVertices[i].y < minY) {
-        minY = leftVertices[i].y;
-      }
-      if (maxY == -1 || leftVertices[i].y > maxY) {
-        maxY = leftVertices[i].y;
-      }
       polygonVertices.push(leftVertices[i]);
     }
-    polygonVertices.forEach((v) => {
-      if (v.y == minY) v.y -= marginY;
-      if (v.y == maxY) v.y += marginY;
-    });
     drawPolygon(polygonVertices);
   }
 }
@@ -442,10 +420,7 @@ function moveFocus(offset: number) {
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
     while (true) {
-      if (
-        nextFosuedNodeIdx + dir < 0 ||
-        nextFosuedNodeIdx + dir > nodeList.length - 1
-      ) {
+      if (nextFosuedNodeIdx + dir < 0 || nextFosuedNodeIdx + dir > nodeList.length - 1) {
         endOfNode = true;
         break;
       }
@@ -461,8 +436,7 @@ function moveFocus(offset: number) {
         nextFocusedSentenceIdx = 0;
       }
       if (dir < 0) {
-        nextFocusedSentenceIdx =
-          anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
+        nextFocusedSentenceIdx = anchorMap.get(nodeList[nextFosuedNodeIdx])!.length - 1;
       }
       break;
     }
@@ -483,7 +457,6 @@ function updateFocusedNode(): void {
   console.debug(`focusedNodeIdx=${focusedNodeIdx}`);
   console.debug(`focusedSentenceIdx=${focusedSentenceIdx}`);
 
-  const range = document.createRange();
   const anchor = anchorMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
 
   console.debug(`anchor=${anchor}`);
@@ -495,21 +468,36 @@ function updateFocusedNode(): void {
       })}`
   );
 
-  printInfo(nodeList[focusedNodeIdx]);
-
-  range.setStart(anchor.startNode, anchor.startOffsetIdx);
-  range.setEnd(anchor.endNode, anchor.endOffsetIdx);
-
-  const rects = range.getClientRects();
-
-  if (!rects) {
-    console.debug("텍스트 노드를 찾을 수 없거나 비어 있음");
-    return;
-  }
+  const rects = getRectsFromAnchor(anchor);
 
   clearAll();
-  drawClientRects(rects);
+  drawRects(rects);
 }
+
+function printInfo(node: Node): void {
+  console.debug(`
+    --- Node Info ---\n
+    node.nodeType=${node.nodeType}
+    node.nodeName=${node.nodeName}
+    node.parentNode?.nodeType=${node.parentNode?.nodeType}
+    node.parentNode?.nodeName=${node.parentNode?.nodeName}
+    -------------`);
+}
+
+window.addEventListener(
+  "load",
+  () => {
+    setTimeout(() => {
+      init();
+    }, startDelayTime);
+  },
+  { once: true }
+);
+
+window.addEventListener("resize", () => {
+  updateCanvasSize();
+  rectMap.clear();
+});
 
 document.addEventListener("mouseup", function (e) {
   if (!focusActive) return;
@@ -559,12 +547,29 @@ document.addEventListener("keydown", function (e) {
   updateFocusedNode();
 });
 
-function printInfo(node: Node): void {
-  console.debug(`
-    --- Node Info ---\n
-    node.nodeType=${node.nodeType}
-    node.nodeName=${node.nodeName}
-    node.parentNode?.nodeType=${node.parentNode?.nodeType}
-    node.parentNode?.nodeName=${node.parentNode?.nodeName}
-    -------------`);
-}
+chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
+  focusActive = stored ?? false;
+  if (focusActive) {
+    document.documentElement.classList.add("focus-anchor__active");
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "toggle-focus") {
+    focusActive = !focusActive;
+
+    if (focusActive) {
+      document.documentElement.classList.add("focus-anchor__active");
+      activateFocus();
+    } else {
+      document.documentElement.classList.remove("focus-anchor__active");
+      deactivateFocus();
+    }
+
+    chrome.storage.local.set({ focusActive });
+
+    sendResponse({ isActive: focusActive });
+  } else if (msg.type === "get-focus-state") {
+    sendResponse({ isActive: focusActive });
+  }
+});

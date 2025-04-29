@@ -1,0 +1,6 @@
+export enum FigureStrategy {
+  UNDERLINE = "UNDERLINE",
+  UNDERLINE_FIXED = "UNDERLINE_FIXED",
+  RECT = "RECT",
+  RECT_MERGE = "RECT_MERGE",
+}
