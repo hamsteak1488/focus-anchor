@@ -27,4 +27,8 @@ export class Rect {
   toString(): string {
     return `[x=${this.x}, y=${this.y}, width=${this.width}, height=${this.height}]`;
   }
+
+  static from(rect: Rect): Rect {
+    return new Rect(rect.x, rect.y, rect.width, rect.height);
+  }
 }

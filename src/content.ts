@@ -1,21 +1,26 @@
+import { clear } from "console";
 import { Anchor } from "./Anchor";
 import { Delimeter } from "./Delimeter";
 import { FigureStrategy } from "./FigureStrategy.enum";
 import { Fragment } from "./Fragment";
+import { PaintStrategy } from "./PaintStrategy.enum";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 import { Stack } from "./Stack";
+import { CanvasHoleOverlay } from "./CanvasHoleOverlay";
 
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<Node, Anchor[]>();
 const rectMap = new Map<Anchor, Rect[]>();
+const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
 const ignoreSplitTagList: string[] = ["SCRIPT"];
 const delimiters: Delimeter[] = [
   new Delimeter(". ", 1),
   new Delimeter("? ", 1),
   new Delimeter("! ", 1),
+  new Delimeter(".\n", 1),
 ];
 
 let focusActive = false;
@@ -23,13 +28,40 @@ let focusedNodeIdx = 0;
 let focusedSentenceIdx = 0;
 let figureStrategy =
   FigureStrategy[(process.env.FIGURE_STRATEGY as keyof typeof FigureStrategy) ?? "UNDERLINE"];
+let paintStrategy =
+  PaintStrategy[(process.env.PAINT_STRATEGY as keyof typeof PaintStrategy) ?? "OUTLINE"];
 
 const startDelayTime = 0;
 const marginX = parseInt(process.env.MARGIN_X ?? "0");
 const marginY = parseInt(process.env.MARGIN_Y ?? "0");
 const fixedUnderlineLength = 20;
+const floorMergeTestReduction = 1;
+const minRectArea = 100;
 
 let fragmentListStack = new Stack<Fragment[]>();
+
+let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
+if (!canvas) {
+  canvas = document.createElement("canvas");
+  canvas.id = "overlay-canvas";
+  canvas.style.position = "absolute";
+  canvas.style.top = "0";
+  canvas.style.left = "0";
+  canvas.style.pointerEvents = "none";
+  canvas.style.zIndex = "9999";
+  document.body.appendChild(canvas);
+}
+
+const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+function updateCanvasSize() {
+  // document의 전체 scrollable 영역을 계산
+  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+}
+updateCanvasSize();
+
+// const canvasHoleOverlay = new CanvasHoleOverlay(canvas, ctx, [new Rect(0, 0, 100, 100)], 1000);
 
 function traversalPreOrder(node: Node): void {
   if (ignoreSplitTagList.includes(node.nodeName)) return;
@@ -161,6 +193,31 @@ function init(): void {
     nodeIdxMap.set(nodeList[i], i);
   }
 
+  // 최소 영역 만족 못하는 앵커 제거.
+  anchorMap.forEach((anchors, node) => {
+    anchorMap.set(
+      node,
+      anchors.filter((anchor) => {
+        return getRectsAreaOfAnchor(anchor) >= minRectArea;
+      })
+    );
+  });
+
+  // 빈 앵커리스트를 앵커맵에서 제거.
+  const deleteAnchorsKeys: Node[] = [];
+  for (const entry of anchorMap.entries()) {
+    const node = entry[0];
+    const anchors = entry[1];
+
+    if (anchors.length == 0) {
+      deleteAnchorsKeys.push(node);
+    }
+  }
+  for (const key of deleteAnchorsKeys) {
+    anchorMap.delete(key);
+  }
+
+  // 초기 인덱스 지정.
   const firstNode = anchorMap.keys().next().value as Node;
   focusedNodeIdx = nodeIdxMap.get(firstNode)!;
   focusedSentenceIdx = 0;
@@ -175,6 +232,15 @@ function init(): void {
   console.debug(`nodeList.length=${nodeList.length}`);
 }
 
+function getRectFromDomRect(domRect: DOMRect): Rect {
+  return new Rect(
+    domRect.x + window.scrollX,
+    domRect.y + window.scrollY,
+    domRect.width,
+    domRect.height
+  );
+}
+
 function getRectsFromAnchor(anchor: Anchor): Rect[] {
   if (rectMap.has(anchor)) {
     return rectMap.get(anchor)!;
@@ -185,7 +251,7 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
   range.setEnd(anchor.endNode, anchor.endOffsetIdx);
 
   const domRects = range.getClientRects();
-  if (!domRects) {
+  if (!domRects || domRects.length == 0) {
     console.warn("getRectsFromAnchor: Failed to get client rects from a anchor");
     return [];
   }
@@ -194,6 +260,34 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
   for (const domRect of domRects) {
     rects.push(getRectFromDomRect(domRect));
   }
+
+  if (!rects || rects.length == 0) {
+    console.warn("getRectsFromAnchor: Failed to get rects from domRects");
+    return [];
+  }
+
+  rectMap.set(anchor, rects);
+
+  return rects;
+}
+
+function getRectsAreaOfAnchor(anchor: Anchor): number {
+  const rects = getRectsFromAnchor(anchor);
+
+  let totalRectArea = 0;
+  for (const rect of rects) {
+    totalRectArea += rect.width * rect.height;
+  }
+
+  return totalRectArea;
+}
+
+function getFloorSeperatedRectsFromRects(anchor: Anchor): Rect[] {
+  if (floorSeperatedRectMap.has(anchor)) {
+    return floorSeperatedRectMap.get(anchor)!;
+  }
+
+  const rects = getRectsFromAnchor(anchor);
 
   rects.sort((a, b) => {
     return a.y - b.y;
@@ -204,11 +298,17 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
   for (let i = 1; i < rects.length; i++) {
     const rect = floorSeperatedRects[floorSeperatedRects.length - 1];
     // 옆면이 겹치지 않는 경우: 바로 리스트에 추가.
-    if (rect.bottom < rects[i].top || rect.top > rects[i].bottom) {
+    if (
+      rect.bottom < rects[i].top + floorMergeTestReduction ||
+      rect.top > rects[i].bottom - floorMergeTestReduction
+    ) {
       floorSeperatedRects.push(rects[i]);
     }
     // 옆면이 겹치는 경우. 바운딩 사각형 추가.
     else {
+      console.debug(
+        `getFloorSeperatedRectsFromRects: Detected overlappnig rectangles, idx of rect is ${i}`
+      );
       const newLeft = Math.min(rect.left, rects[i].left);
       const newTop = Math.min(rect.top, rects[i].top);
       const newRight = Math.max(rect.right, rects[i].right);
@@ -219,51 +319,30 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
     }
   }
 
-  rectMap.set(anchor, floorSeperatedRects);
+  floorSeperatedRectMap.set(anchor, floorSeperatedRects);
 
   return floorSeperatedRects;
 }
 
-let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
-if (!canvas) {
-  canvas = document.createElement("canvas");
-  canvas.id = "overlay-canvas";
-  canvas.style.position = "absolute";
-  canvas.style.top = "0";
-  canvas.style.left = "0";
-  canvas.style.pointerEvents = "none";
-  canvas.style.zIndex = "9999";
-  document.body.appendChild(canvas);
-}
-
-const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-
-function updateCanvasSize() {
-  // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-}
-updateCanvasSize();
-
-function getRectFromDomRect(domRect: DOMRect): Rect {
-  return new Rect(
-    domRect.x + window.scrollX,
-    domRect.y + window.scrollY,
-    domRect.width,
-    domRect.height
-  );
-}
-
-function drawRectangle(rect: Rect): void {
-  ctx.strokeStyle = "red";
+function drawRectangle(rect: Rect, color: string): void {
+  ctx.strokeStyle = color;
   ctx.lineWidth = 3;
   ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
 }
 
-function drawPolygon(vertices: Point[]): void {
+function fillRectangle(rect: Rect, color: string): void {
+  ctx.fillStyle = color;
+  ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function clearRectangle(rect: Rect) {
+  ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+}
+
+function drawPolygon(vertices: Point[], color: string): void {
   if (vertices.length == 0) return;
 
-  ctx.strokeStyle = "red";
+  ctx.strokeStyle = color;
   ctx.lineWidth = 3;
 
   ctx.beginPath();
@@ -276,16 +355,21 @@ function drawPolygon(vertices: Point[]): void {
 }
 
 function drawRects(rects: Rect[]): void {
-  if (rects.length == 0) return;
+  if (!rects || rects.length == 0) return;
+
+  if (paintStrategy == PaintStrategy.HIGHLIGHT) {
+    fillRectangle(new Rect(0, 0, canvas.width, canvas.height), "rgba(0, 0, 0, 0.5)");
+  }
 
   if (figureStrategy == FigureStrategy.UNDERLINE) {
+    console.log(rects);
     for (const rect of rects) {
       const polygonVertices: Point[] = [];
       polygonVertices.push(
         new Point(rect.left, rect.bottom + marginY),
         new Point(rect.right, rect.bottom + marginY)
       );
-      drawPolygon(polygonVertices);
+      drawPolygon(polygonVertices, "red");
     }
   }
 
@@ -295,17 +379,29 @@ function drawRects(rects: Rect[]): void {
       new Point(rects[0].left, rects[0].bottom + marginY),
       new Point(rects[0].left + fixedUnderlineLength, rects[0].bottom + marginY)
     );
-    drawPolygon(polygonVertices);
+    drawPolygon(polygonVertices, "red");
   }
 
   if (figureStrategy == FigureStrategy.RECT) {
+    const marginAppliedRects: Rect[] = [];
     for (const rect of rects) {
-      rect.x -= marginX;
-      rect.y -= marginY;
-      rect.width += marginX * 2;
-      rect.height += marginY * 2;
-
-      drawRectangle(rect);
+      const marginAppliedRect = Rect.from(rect);
+      marginAppliedRect.x -= marginX;
+      marginAppliedRect.y -= marginY;
+      marginAppliedRect.width += marginX * 2;
+      marginAppliedRect.height += marginY * 2;
+      marginAppliedRects.push(marginAppliedRect);
+    }
+    if (paintStrategy == PaintStrategy.OUTLINE) {
+      for (const marginAppliedRect of marginAppliedRects) {
+        drawRectangle(marginAppliedRect, "red");
+      }
+    }
+    if (paintStrategy == PaintStrategy.HIGHLIGHT) {
+      // canvasHoleOverlay.moveToRects(marginAppliedRects);
+      for (const marginAppliedRect of marginAppliedRects) {
+        clearRectangle(marginAppliedRect);
+      }
     }
   }
 
@@ -348,7 +444,7 @@ function drawRects(rects: Rect[]): void {
             polygonVertices.push(leftVertices[i]);
           }
 
-          drawPolygon(polygonVertices);
+          drawPolygon(polygonVertices, "red");
 
           leftVertices.splice(0, leftVertices.length);
           rightVertices.splice(0, rightVertices.length);
@@ -383,7 +479,7 @@ function drawRects(rects: Rect[]): void {
     for (let i = leftVertices.length - 1; i >= 0; i--) {
       polygonVertices.push(leftVertices[i]);
     }
-    drawPolygon(polygonVertices);
+    drawPolygon(polygonVertices, "red");
   }
 }
 
@@ -415,7 +511,7 @@ function moveFocus(offset: number) {
       continue;
     }
 
-    // 다음 목적지가 현재 노드 내 앵커인덱스가 리스트를 벗어나는 경우.
+    // 다음 목적지가 현재 노드 내 앵커인덱스 리스트를 벗어나는 경우.
     let endOfNode = false;
     let nextFosuedNodeIdx = focusedNodeIdx;
     let nextFocusedSentenceIdx = focusedSentenceIdx;
@@ -431,6 +527,7 @@ function moveFocus(offset: number) {
         continue;
       }
 
+      // 앵커인덱스를 가진 노드 발견하면 focus idx update.
       nextFosuedNodeIdx += dir;
       if (dir > 0) {
         nextFocusedSentenceIdx = 0;
@@ -459,16 +556,15 @@ function updateFocusedNode(): void {
 
   const anchor = anchorMap.get(nodeList[focusedNodeIdx])![focusedSentenceIdx];
 
-  console.debug(`anchor=${anchor}`);
   console.debug(
-    `anchorIndicesMap.get(nodeList[focusedNodeIdx])=${anchorMap
-      .get(nodeList[focusedNodeIdx])!
-      .map((anchor) => {
-        return `(s=${anchor.startOffsetIdx},e=${anchor.endOffsetIdx})`;
-      })}`
+    `anchorMap.get(${nodeList[focusedNodeIdx]}).length)=${
+      anchorMap.get(nodeList[focusedNodeIdx])!.length
+    }`
   );
+  console.debug(`anchor=${anchor}`);
+  console.debug(`getRectsAreaOfAnchor(anchor)=${getRectsAreaOfAnchor(anchor)}`);
 
-  const rects = getRectsFromAnchor(anchor);
+  const rects = getFloorSeperatedRectsFromRects(anchor);
 
   clearAll();
   drawRects(rects);
@@ -497,6 +593,7 @@ window.addEventListener(
 window.addEventListener("resize", () => {
   updateCanvasSize();
   rectMap.clear();
+  floorSeperatedRectMap.clear();
 });
 
 document.addEventListener("mouseup", function (e) {
