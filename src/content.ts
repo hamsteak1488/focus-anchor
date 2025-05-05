@@ -252,7 +252,7 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
 
   const domRects = range.getClientRects();
   if (!domRects || domRects.length == 0) {
-    console.warn("getRectsFromAnchor: Failed to get client rects from a anchor");
+    console.debug("getRectsFromAnchor: Failed to get client rects from a anchor");
     return [];
   }
 
@@ -262,7 +262,7 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
   }
 
   if (!rects || rects.length == 0) {
-    console.warn("getRectsFromAnchor: Failed to get rects from domRects");
+    console.debug("getRectsFromAnchor: Failed to get rects from domRects");
     return [];
   }
 
