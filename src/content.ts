@@ -1,4 +1,3 @@
-import { clear } from "console";
 import { Anchor } from "./Anchor";
 import { Delimeter } from "./Delimeter";
 import { FigureStrategy } from "./FigureStrategy.enum";
@@ -7,7 +6,6 @@ import { PaintStrategy } from "./PaintStrategy.enum";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 import { Stack } from "./Stack";
-import { CanvasHoleOverlay } from "./CanvasHoleOverlay";
 
 class FocusedInfo {
   nodeIdx: number;
