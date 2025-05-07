@@ -594,6 +594,17 @@ function moveFocus(offset: number) {
   }
 }
 
+function scrollToFocusedAnchor(): void {
+  const focusedNode = nodeList[focusedInfo.nodeIdx];
+  const focusedAnchor = anchorMap.get(focusedNode)![focusedInfo.anchorIdx];
+  const firstRectOfAnchor = rectMap.get(focusedAnchor)![0];
+
+  scrollTo({
+    top: firstRectOfAnchor.top - (window.innerHeight / 2 - firstRectOfAnchor.height / 2),
+    behavior: "smooth",
+  });
+}
+
 function updateFocusedNode(): void {
   if (!focusActive) return;
 
@@ -667,6 +678,7 @@ document.addEventListener("mouseup", function (e) {
   focusedInfo.anchorIdx = res.anchorIdx;
 
   updateFocusedNode();
+  scrollToFocusedAnchor();
 });
 
 document.addEventListener("keydown", function (e) {
@@ -692,7 +704,9 @@ document.addEventListener("keydown", function (e) {
     default:
       return;
   }
+
   updateFocusedNode();
+  scrollToFocusedAnchor();
 });
 
 chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
