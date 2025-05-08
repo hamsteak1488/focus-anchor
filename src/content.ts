@@ -42,7 +42,7 @@ const startDelayTime = 0;
 const marginX = parseInt(process.env.MARGIN_X ?? "0");
 const marginY = parseInt(process.env.MARGIN_Y ?? "0");
 const fixedUnderlineLength = 20;
-const floorMergeTestReduction = 1;
+const floorMergeTestRange = 1;
 const minRectArea = 100;
 
 let fragmentListStack = new Stack<Fragment[]>();
@@ -306,8 +306,8 @@ function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
     const rect = floorSeperatedRects[floorSeperatedRects.length - 1];
     // 옆면이 겹치지 않는 경우: 바로 리스트에 추가.
     if (
-      rect.bottom < rects[i].top + floorMergeTestReduction ||
-      rect.top > rects[i].bottom - floorMergeTestReduction
+      Math.abs((rect.top + rect.bottom) / 2 - (rects[i].top + rects[i].bottom) / 2) >
+      floorMergeTestRange
     ) {
       floorSeperatedRects.push(rects[i]);
     }
