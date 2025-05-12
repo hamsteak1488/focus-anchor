@@ -22,8 +22,8 @@ const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<number, Anchor[]>();
 const rectMap = new Map<Anchor, Rect[]>();
 const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
-const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN"];
-const ignoreSplitTagList: string[] = ["SCRIPT"];
+const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP"];
+const ignoreSplitTagList: string[] = ["SCRIPT", "#comment"];
 const delimiters: Delimeter[] = [
   new Delimeter(". ", 1),
   new Delimeter("? ", 1),
@@ -98,7 +98,11 @@ function traversalPreOrder(node: Node): void {
     // console.debug(`end traversal = ${child.nodeName}`);
 
     // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (child.nodeType != Node.TEXT_NODE && !nonSplitTagList.includes(child.nodeName)) {
+    if (
+      child.nodeType != Node.TEXT_NODE &&
+      !nonSplitTagList.includes(child.nodeName) &&
+      !ignoreSplitTagList.includes(child.nodeName)
+    ) {
       fragmentListStack.peek().push(new Fragment("", child, -1));
     }
   });
