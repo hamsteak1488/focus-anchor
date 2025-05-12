@@ -42,7 +42,7 @@ const startDelayTime = 0;
 const marginX = parseInt(process.env.MARGIN_X ?? "0");
 const marginY = parseInt(process.env.MARGIN_Y ?? "0");
 const fixedUnderlineLength = 20;
-const floorMergeTestRange = 1;
+const floorMergeTestRange = 10;
 const minRectArea = 100;
 
 let fragmentListStack = new Stack<Fragment[]>();
