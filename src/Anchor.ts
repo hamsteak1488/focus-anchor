@@ -1,17 +1,22 @@
 export class Anchor {
-  startNode: Node;
+  startNodeIdx: number;
   startOffsetIdx: number;
-  endNode: Node;
-  endOffsetIdx: number;
+  endNodeIdx: number;
+  endOffsetIdx: number; // endOffsetIdx는 exclusive.
 
-  constructor(startNode: Node, startIdx: number, endNode: Node, endIdx: number) {
-    this.startNode = startNode;
-    this.startOffsetIdx = startIdx;
-    this.endNode = endNode;
-    this.endOffsetIdx = endIdx;
+  constructor(
+    startNodeIdx: number,
+    startOffsetIdx: number,
+    endNodeIdx: number,
+    endOffsetIdx: number
+  ) {
+    this.startNodeIdx = startNodeIdx;
+    this.startOffsetIdx = startOffsetIdx;
+    this.endNodeIdx = endNodeIdx;
+    this.endOffsetIdx = endOffsetIdx;
   }
 
   toString(): string {
-    return `[startOffsetIdx=${this.startOffsetIdx}, endOffsetIdx=${this.endOffsetIdx}]`;
+    return `start:[node=${this.startNodeIdx}, offset=${this.startOffsetIdx}], end:[node=${this.endNodeIdx}, offset=${this.endOffsetIdx}]`;
   }
 }
