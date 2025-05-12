@@ -331,13 +331,15 @@ function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
   return floorSeperatedRects;
 }
 
-function getFocusedInfoFromClickedNode(
-  clickedNodeIdx: number,
-  clickedPoint: Point
-): FocusedInfo | null {
+function findFocusedInfoFromNode(node: Node, clickedPoint: Point): FocusedInfo | null {
   // 텍스트를 클릭해도 clickedTarget에는 텍스트 노드가 아니라 그 상위 노드가 담김.
   // 앵커를 가진 노드는 모두 텍스트 노드이므로, 모든 노드에 대해 자식 노드로부터 영역 내 클릭 위치가 있는 앵커 탐색.
-  for (const childNode of nodeList[clickedNodeIdx].childNodes) {
+  for (const childNode of node.childNodes) {
+    if (childNode.hasChildNodes()) {
+      const res = findFocusedInfoFromNode(childNode, clickedPoint);
+      if (res) return res;
+    }
+
     const anchors = anchorMap.get(childNode);
     if (!anchors) continue;
 
@@ -357,6 +359,24 @@ function getFocusedInfoFromClickedNode(
       }
     }
   }
+
+  return null;
+}
+
+function getFocusedInfoFromClickedNode(
+  clickedNodeIdx: number,
+  clickedPoint: Point
+): FocusedInfo | null {
+  let pNode: Node | null = nodeList[clickedNodeIdx];
+  while (pNode && nonSplitTagList.includes(pNode.nodeName)) {
+    pNode = pNode.parentNode;
+  }
+  if (!pNode) {
+    return null;
+  }
+
+  const res = findFocusedInfoFromNode(pNode, clickedPoint);
+  if (res) return res;
 
   // 만약 정확한 앵커를 찾지 못했다면, 근접한 앵커 정보라도 반환.
   for (let pNodeIdx = clickedNodeIdx; pNodeIdx < nodeList.length; pNodeIdx++) {
