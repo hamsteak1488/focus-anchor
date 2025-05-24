@@ -142,7 +142,6 @@ function traversalPreOrder(node: Node): void {
 
       if (matchSucceed) {
         let popCount = delimeter.token.length - delimeter.exclusiveStartIdx;
-        console.debug(`popCount=${popCount}`);
         while (popCount--) {
           fragmentBuffer.pop();
         }
