@@ -2,14 +2,18 @@ const btn = document.getElementById("focus-toggle")!;
 
 document.addEventListener("DOMContentLoaded", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
   chrome.tabs.sendMessage(tab.id!, { type: "get-focus-state" }, (resp) => {
+    if (!resp) return;
     updateIndicator(resp.isActive);
   });
 });
 
 btn.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
   chrome.tabs.sendMessage(tab.id!, { type: "toggle-focus" }, (resp) => {
+    if (!resp) return;
     updateIndicator(resp.isActive);
   });
 });
