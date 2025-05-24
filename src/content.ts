@@ -22,13 +22,14 @@ const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<number, Anchor[]>();
 const rectMap = new Map<Anchor, Rect[]>();
 const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
-const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP"];
+const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
 const ignoreSplitTagList: string[] = ["SCRIPT", "#comment"];
 const delimiters: Delimeter[] = [
   new Delimeter(". ", 1),
   new Delimeter("? ", 1),
   new Delimeter("! ", 1),
   new Delimeter(".\n", 1),
+  new Delimeter(". ", 0),
 ];
 
 let focusActive = false;
@@ -120,6 +121,7 @@ function traversalPreOrder(node: Node): void {
     if (fragment.idx != -1) {
       fragmentBuffer.push(fragment);
       stringBuffer += fragment.ch;
+      console.debug(`stringBuffer=${stringBuffer}`);
     }
 
     let needSplit = false;
