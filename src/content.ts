@@ -121,7 +121,6 @@ function traversalPreOrder(node: Node): void {
     if (fragment.idx != -1) {
       fragmentBuffer.push(fragment);
       stringBuffer += fragment.ch;
-      console.debug(`stringBuffer=${stringBuffer}`);
     }
 
     let needSplit = false;
@@ -764,5 +763,20 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     sendResponse({ isActive: focusActive });
   } else if (msg.type === "get-focus-state") {
     sendResponse({ isActive: focusActive });
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "get-figure") {
+    sendResponse({ figure: figureStrategy.toString() });
+  }
+  if (msg.type === "set-figure") {
+    figureStrategy = msg.figure;
+  }
+  if (msg.type === "get-paint") {
+    sendResponse({ paint: paintStrategy.toString() });
+  }
+  if (msg.type === "set-paint") {
+    paintStrategy = msg.paint;
   }
 });
