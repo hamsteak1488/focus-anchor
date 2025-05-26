@@ -1,4 +1,5 @@
-const btn = document.getElementById("focus-toggle")!;
+const focusToggleButton = document.getElementById("focus-toggle")!;
+const reloadButton = document.getElementById("reload");
 
 document.addEventListener("DOMContentLoaded", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -9,7 +10,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 });
 
-btn.addEventListener("click", async () => {
+focusToggleButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   chrome.tabs.sendMessage(tab.id!, { type: "toggle-focus" }, (resp) => {
@@ -18,8 +19,14 @@ btn.addEventListener("click", async () => {
   });
 });
 
+reloadButton?.addEventListener("click", async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+
+  chrome.tabs.sendMessage(tab.id!, { type: "reload" });
+});
+
 function updateIndicator(active: boolean) {
-  btn.style.backgroundColor = active ? "chartreuse" : "darkorange";
+  focusToggleButton.style.backgroundColor = active ? "chartreuse" : "darkorange";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {

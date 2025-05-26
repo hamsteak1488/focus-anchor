@@ -67,8 +67,6 @@ function updateCanvasSize() {
   canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
   canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
-updateCanvasSize();
-
 // const canvasHoleOverlay = new CanvasHoleOverlay(canvas, ctx, [new Rect(0, 0, 100, 100)], 1000);
 
 function traversalPreOrder(node: Node): void {
@@ -205,6 +203,17 @@ function traversalPreOrder(node: Node): void {
 }
 
 function init(): void {
+  console.debug(`Started initializing.`);
+
+  nodeList.splice(0, nodeList.length);
+  nodeIdxMap.clear();
+  anchorMap.clear();
+  rectMap.clear();
+  floorSeperatedRectMap.clear();
+  while (!fragmentListStack.isEmpty()) fragmentListStack.pop();
+
+  updateCanvasSize();
+
   traversalPreOrder(document.body);
 
   for (let i = 0; i < nodeList.length; i++) {
@@ -745,7 +754,7 @@ chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
   }
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "toggle-focus") {
     focusActive = !focusActive;
 
@@ -777,5 +786,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === "set-paint") {
     paintStrategy = msg.paint;
+  }
+});
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "reload") {
+    init();
   }
 });
