@@ -35,11 +35,12 @@ const delimiters: Delimeter[] = [
 let focusActive = false;
 const focusedInfo = new FocusedInfo(0, 0);
 let figureStrategy =
-  FigureStrategy[(process.env.FIGURE_STRATEGY as keyof typeof FigureStrategy) ?? "UNDERLINE"];
+  FigureStrategy[
+    (process.env.DEFAULT_FIGURE_STRATEGY as keyof typeof FigureStrategy) ?? "UNDERLINE"
+  ];
 let paintStrategy =
-  PaintStrategy[(process.env.PAINT_STRATEGY as keyof typeof PaintStrategy) ?? "OUTLINE"];
+  PaintStrategy[(process.env.DEFAULT_PAINT_STRATEGY as keyof typeof PaintStrategy) ?? "OUTLINE"];
 
-const startDelayTime = 0;
 const marginX = parseInt(process.env.MARGIN_X ?? "0");
 const marginY = parseInt(process.env.MARGIN_Y ?? "0");
 const fixedUnderlineLength = 20;
@@ -67,7 +68,6 @@ function updateCanvasSize() {
   canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
   canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
 }
-// const canvasHoleOverlay = new CanvasHoleOverlay(canvas, ctx, [new Rect(0, 0, 100, 100)], 1000);
 
 function traversalPreOrder(node: Node): void {
   if (ignoreSplitTagList.includes(node.nodeName)) return;
@@ -483,7 +483,6 @@ function drawRects(rects: Rect[]): void {
       }
     }
     if (paintStrategy == PaintStrategy.SPOTLIGHT) {
-      // canvasHoleOverlay.moveToRects(marginAppliedRects);
       for (const marginAppliedRect of marginAppliedRects) {
         clearRectangle(marginAppliedRect);
       }
@@ -568,15 +567,15 @@ function drawRects(rects: Rect[]): void {
   }
 }
 
-function clearAll(): void {
+function clearCanvas(): void {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function activateFocus(): void {
-  updateFocusedNode();
+  init();
 }
 function deactivateFocus(): void {
-  clearAll();
+  clearCanvas();
 }
 
 function moveFocus(offset: number) {
@@ -660,7 +659,7 @@ function updateFocusedNode(): void {
 
   const rects = getFloorSeperatedRectsFromAnchor(anchor);
 
-  clearAll();
+  clearCanvas();
   drawRects(rects);
 }
 
@@ -675,17 +674,9 @@ function printInfo(node: Node): void {
     -------------`);
 }
 
-window.addEventListener(
-  "load",
-  () => {
-    setTimeout(() => {
-      init();
-    }, startDelayTime);
-  },
-  { once: true }
-);
-
 window.addEventListener("resize", () => {
+  if (!focusActive) return;
+
   updateCanvasSize();
   rectMap.clear();
   floorSeperatedRectMap.clear();
@@ -747,13 +738,6 @@ document.addEventListener("keydown", function (e) {
   scrollToFocusedAnchor();
 });
 
-chrome.storage.local.get("focusActive", ({ focusActive: stored }) => {
-  focusActive = stored ?? false;
-  if (focusActive) {
-    document.documentElement.classList.add("focus-anchor__active");
-  }
-});
-
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "toggle-focus") {
     focusActive = !focusActive;
@@ -765,11 +749,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       document.documentElement.classList.remove("focus-anchor__active");
       deactivateFocus();
     }
-
-    chrome.storage.local.set({ focusActive });
-
     sendResponse({ isActive: focusActive });
-  } else if (msg.type === "get-focus-state") {
+  }
+  if (msg.type === "get-focus-state") {
     sendResponse({ isActive: focusActive });
   }
 });
