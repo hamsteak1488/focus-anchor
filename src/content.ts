@@ -24,7 +24,7 @@ const anchorMap = new Map<number, Anchor[]>();
 const rectMap = new Map<Anchor, Rect[]>();
 const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
-const ignoreSplitTagList: string[] = ["SCRIPT", "#comment"];
+const ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
 const delimiters: Delimeter[] = [
   new Delimeter(". ", 1),
   new Delimeter("? ", 1),
