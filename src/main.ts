@@ -1,5 +1,11 @@
+import { Config } from "./Config";
+
 const focusToggleButton = document.getElementById("focus-toggle")!;
-const reloadButton = document.getElementById("reload");
+const reloadButton = document.getElementById("reload")!;
+const configTextArea = document.getElementById("config") as HTMLTextAreaElement;
+const saveButton = document.getElementById("save") as HTMLButtonElement;
+const resetButton = document.getElementById("reset") as HTMLButtonElement;
+const state = document.getElementById("state") as HTMLElement;
 
 function checkRuntimeError(): boolean {
   if (chrome.runtime.lastError) {
@@ -29,7 +35,7 @@ focusToggleButton.addEventListener("click", async () => {
   });
 });
 
-reloadButton?.addEventListener("click", async () => {
+reloadButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
   chrome.tabs.sendMessage(tab.id!, { type: "reload" }, (resp) => {
@@ -41,44 +47,58 @@ function updateIndicator(active: boolean) {
   focusToggleButton.style.backgroundColor = active ? "chartreuse" : "darkorange";
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  chrome.tabs.sendMessage(tab.id!, { type: "get-figure" }, (resp) => {
-    if (checkRuntimeError()) return;
-    if (resp?.figure) {
-      const radio = document.querySelector<HTMLInputElement>(
-        `input[name="figure"][value="${resp.figure}"]`
-      );
-      if (radio) radio.checked = true;
-    }
-  });
-  chrome.tabs.sendMessage(tab.id!, { type: "get-paint" }, (resp) => {
-    if (checkRuntimeError()) return;
-    if (resp?.paint) {
-      const radio = document.querySelector<HTMLInputElement>(
-        `input[name="paint"][value="${resp.paint}"]`
-      );
-      if (radio) radio.checked = true;
-    }
-  });
-
-  const figureRadios = document.querySelectorAll<HTMLInputElement>('input[name="figure"]');
-  figureRadios.forEach((radio) => {
-    radio.addEventListener("change", async () => {
-      const figure = radio.value;
-      chrome.tabs.sendMessage(tab.id!, { type: "set-figure", figure }, (resp) => {
-        if (checkRuntimeError()) return;
-      });
-    });
-  });
-  const paintRadios = document.querySelectorAll<HTMLInputElement>('input[name="paint"]');
-  paintRadios.forEach((radio) => {
-    radio.addEventListener("change", async () => {
-      const paint = radio.value;
-      chrome.tabs.sendMessage(tab.id!, { type: "set-paint", paint }, (resp) => {
-        if (checkRuntimeError()) return;
-      });
-    });
-  });
+// --- 로딩 ------------------------------------------------------------
+chrome.storage.sync.get("config").then(({ config }) => {
+  if (!config) {
+    chrome.storage.sync.set({ config: Config.default });
+    configTextArea.value = JSON.stringify(Config.default, null, 2);
+  } else {
+    const assignedConfig = Object.assign(Config.default(), config);
+    configTextArea.value = JSON.stringify(assignedConfig, null, 2);
+  }
 });
+
+// --- 저장 ------------------------------------------------------------
+function save() {
+  try {
+    const json = JSON.parse(configTextArea.value);
+    chrome.storage.sync.set({ config: json });
+    flash("✔ saved");
+  } catch {
+    flash("✖ JSON 오류", true);
+  }
+}
+saveButton.onclick = save;
+
+// --- 리셋 ------------------------------------------------------------
+function reset() {
+  configTextArea.value = JSON.stringify(Config.default(), null, 2);
+  try {
+    const json = JSON.parse(configTextArea.value);
+    chrome.storage.sync.set({ config: json });
+    flash("✔ reseted");
+  } catch {
+    flash("✖ JSON 오류", true);
+  }
+}
+resetButton.onclick = reset;
+
+// --- 다른 탭·기기에서 변경 시 즉시 반영 ------------------------------
+chrome.storage.onChanged.addListener((change, area) => {
+  if (area === "sync" && change.config) {
+    const assignedConfig = Object.assign(Config.default(), change.config.newValue);
+    configTextArea.value = JSON.stringify(assignedConfig, null, 2);
+    flash("↻ reloaded");
+  }
+});
+
+// --- 버튼에 잠깐 피드백 ---------------------------------------------
+function flash(text: string, error = false): void {
+  state.textContent = text;
+  state.style.color = error ? "red" : "green";
+
+  setTimeout(() => {
+    state.textContent = "";
+    state.style.color = "";
+  }, 1500);
+}

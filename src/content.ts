@@ -2,6 +2,7 @@ import { Anchor } from "./Anchor";
 import { Delimeter } from "./Delimeter";
 import { FigureStrategy } from "./FigureStrategy.enum";
 import { Fragment } from "./Fragment";
+import { Config } from "./Config";
 import { PaintStrategy } from "./PaintStrategy.enum";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
@@ -34,16 +35,8 @@ const delimiters: Delimeter[] = [
 
 let focusActive = false;
 const focusedInfo = new FocusedInfo(0, 0);
-let figureStrategy =
-  FigureStrategy[
-    (process.env.DEFAULT_FIGURE_STRATEGY as keyof typeof FigureStrategy) ?? "UNDERLINE"
-  ];
-let paintStrategy =
-  PaintStrategy[(process.env.DEFAULT_PAINT_STRATEGY as keyof typeof PaintStrategy) ?? "OUTLINE"];
+let config = Config.default();
 
-const marginX = parseInt(process.env.MARGIN_X ?? "0");
-const marginY = parseInt(process.env.MARGIN_Y ?? "0");
-const fixedUnderlineLength = 20;
 const floorMergeTestRange = 10;
 const minRectArea = 100;
 
@@ -204,6 +197,14 @@ function traversalPreOrder(node: Node): void {
 
 function init(): void {
   console.debug(`Started initializing.`);
+
+  chrome.storage.sync.get("config").then(({ config: cfg }) => {
+    if (!cfg) {
+      config = Config.default();
+    } else {
+      config = Object.assign<Config, string>(Config.default(), cfg);
+    }
+  });
 
   nodeList.splice(0, nodeList.length);
   nodeIdxMap.clear();
@@ -442,54 +443,54 @@ function drawPolygon(vertices: Point[], color: string): void {
 function drawRects(rects: Rect[]): void {
   if (!rects || rects.length == 0) return;
 
-  if (paintStrategy == PaintStrategy.SPOTLIGHT) {
+  if (config.paintStrategy == PaintStrategy.SPOTLIGHT) {
     fillRectangle(new Rect(0, 0, canvas.width, canvas.height), "rgba(0, 0, 0, 0.5)");
   }
 
-  if (figureStrategy == FigureStrategy.UNDERLINE) {
+  if (config.figureStrategy == FigureStrategy.UNDERLINE) {
     console.log(rects);
     for (const rect of rects) {
       const polygonVertices: Point[] = [];
       polygonVertices.push(
-        new Point(rect.left, rect.bottom + marginY),
-        new Point(rect.right, rect.bottom + marginY)
+        new Point(rect.left, rect.bottom + config.marginY),
+        new Point(rect.right, rect.bottom + config.marginY)
       );
       drawPolygon(polygonVertices, "red");
     }
   }
 
-  if (figureStrategy == FigureStrategy.UNDERLINE_FIXED) {
+  if (config.figureStrategy == FigureStrategy.UNDERLINE_FIXED) {
     const polygonVertices: Point[] = [];
     polygonVertices.push(
-      new Point(rects[0].left, rects[0].bottom + marginY),
-      new Point(rects[0].left + fixedUnderlineLength, rects[0].bottom + marginY)
+      new Point(rects[0].left, rects[0].bottom + config.marginY),
+      new Point(rects[0].left + config.fixedUnderlineLength, rects[0].bottom + config.marginY)
     );
     drawPolygon(polygonVertices, "red");
   }
 
-  if (figureStrategy == FigureStrategy.RECT) {
+  if (config.figureStrategy == FigureStrategy.RECT) {
     const marginAppliedRects: Rect[] = [];
     for (const rect of rects) {
       const marginAppliedRect = Rect.from(rect);
-      marginAppliedRect.x -= marginX;
-      marginAppliedRect.y -= marginY;
-      marginAppliedRect.width += marginX * 2;
-      marginAppliedRect.height += marginY * 2;
+      marginAppliedRect.x -= config.marginX;
+      marginAppliedRect.y -= config.marginY;
+      marginAppliedRect.width += config.marginX * 2;
+      marginAppliedRect.height += config.marginY * 2;
       marginAppliedRects.push(marginAppliedRect);
     }
-    if (paintStrategy == PaintStrategy.OUTLINE) {
+    if (config.paintStrategy == PaintStrategy.OUTLINE) {
       for (const marginAppliedRect of marginAppliedRects) {
         drawRectangle(marginAppliedRect, "red");
       }
     }
-    if (paintStrategy == PaintStrategy.SPOTLIGHT) {
+    if (config.paintStrategy == PaintStrategy.SPOTLIGHT) {
       for (const marginAppliedRect of marginAppliedRects) {
         clearRectangle(marginAppliedRect);
       }
     }
   }
 
-  if (figureStrategy == FigureStrategy.RECT_MERGE) {
+  if (config.figureStrategy == FigureStrategy.RECT_MERGE) {
     // 폴리곤 정점 구성
     const leftVertices: Point[] = [];
     const rightVertices: Point[] = [];
@@ -508,15 +509,15 @@ function drawRects(rects: Rect[]): void {
 
         // 충돌안하면 사각형 분리.
         if (rect.right < nextRect.left || rect.left > nextRect.right) {
-          leftVertices[0].y -= marginY;
-          leftVertices[leftVertices.length - 1].y += marginY;
-          rightVertices[0].y -= marginY;
-          rightVertices[rightVertices.length - 1].y += marginY;
+          leftVertices[0].y -= config.marginY;
+          leftVertices[leftVertices.length - 1].y += config.marginY;
+          rightVertices[0].y -= config.marginY;
+          rightVertices[rightVertices.length - 1].y += config.marginY;
           for (const v of leftVertices) {
-            v.x -= marginX;
+            v.x -= config.marginX;
           }
           for (const v of rightVertices) {
-            v.x += marginX;
+            v.x += config.marginX;
           }
 
           const polygonVertices: Point[] = [];
@@ -545,15 +546,15 @@ function drawRects(rects: Rect[]): void {
       }
     }
 
-    leftVertices[0].y -= marginY;
-    leftVertices[leftVertices.length - 1].y += marginY;
-    rightVertices[0].y -= marginY;
-    rightVertices[rightVertices.length - 1].y += marginY;
+    leftVertices[0].y -= config.marginY;
+    leftVertices[leftVertices.length - 1].y += config.marginY;
+    rightVertices[0].y -= config.marginY;
+    rightVertices[rightVertices.length - 1].y += config.marginY;
     for (const v of leftVertices) {
-      v.x -= marginX;
+      v.x -= config.marginX;
     }
     for (const v of rightVertices) {
-      v.x += marginX;
+      v.x += config.marginX;
     }
 
     const polygonVertices: Point[] = [];
@@ -757,22 +758,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "get-figure") {
-    sendResponse({ figure: figureStrategy.toString() });
-  }
-  if (msg.type === "set-figure") {
-    figureStrategy = msg.figure;
-  }
-  if (msg.type === "get-paint") {
-    sendResponse({ paint: paintStrategy.toString() });
-  }
-  if (msg.type === "set-paint") {
-    paintStrategy = msg.paint;
+  if (msg.type === "reload") {
+    init();
   }
 });
 
-chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "reload") {
-    init();
+chrome.storage.onChanged.addListener((change, area) => {
+  if (area === "sync" && change.config) {
+    const newConfig = Object.assign(Config.default(), change.config.newValue);
+    config = newConfig;
   }
 });
