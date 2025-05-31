@@ -25,6 +25,6 @@ export class Config {
   }
 
   static default(): Config {
-    return new Config(1, 2, FigureStrategy.RECT, PaintStrategy.OUTLINE, 20);
+    return new Config(1, 2, FigureStrategy.UNDERLINE_FIXED, PaintStrategy.OUTLINE, 20);
   }
 }
