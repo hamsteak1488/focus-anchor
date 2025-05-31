@@ -35,7 +35,7 @@ const delimiters: Delimeter[] = [
 
 let focusActive = false;
 const focusedInfo = new FocusedInfo(0, 0);
-let config = Config.default();
+let config = new Config();
 
 const floorMergeTestRange = 10;
 const minRectArea = 100;
@@ -200,9 +200,9 @@ function init(): void {
 
   chrome.storage.sync.get("config").then(({ config: cfg }) => {
     if (!cfg) {
-      config = Config.default();
+      config = new Config();
     } else {
-      config = Object.assign<Config, string>(Config.default(), cfg);
+      config = Object.assign<Config, string>(new Config(), cfg);
     }
   });
 
@@ -399,6 +399,8 @@ function getFocusedInfoFromClickedNode(
 
   const res = findFocusedInfoFromNode(pNode, clickedPoint);
   if (res) return res;
+
+  if (config.strictClickDetection) return null;
 
   // 만약 정확한 앵커를 찾지 못했다면, 근접한 앵커 정보라도 반환.
   for (let pNodeIdx = clickedNodeIdx; pNodeIdx < nodeList.length; pNodeIdx++) {
@@ -634,6 +636,8 @@ function moveFocus(offset: number) {
 }
 
 function scrollToFocusedAnchor(): void {
+  if (!config.autoScroll) return;
+
   const focusedAnchor = anchorMap.get(focusedInfo.nodeIdx)![focusedInfo.anchorIdx];
   const firstRectOfAnchor = rectMap.get(focusedAnchor)![0];
 
@@ -765,7 +769,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "sync" && change.config) {
-    const newConfig = Object.assign(Config.default(), change.config.newValue);
+    const newConfig = Object.assign(new Config(), change.config.newValue);
     config = newConfig;
   }
 });

@@ -2,29 +2,14 @@ import { FigureStrategy } from "./FigureStrategy.enum";
 import { PaintStrategy } from "./PaintStrategy.enum";
 
 export class Config {
-  marginX: number;
-  marginY: number;
+  marginX: number = 1;
+  marginY: number = 2;
 
-  figureStrategy: FigureStrategy;
-  paintStrategy: PaintStrategy;
+  figureStrategy: FigureStrategy = FigureStrategy.UNDERLINE_FIXED;
+  paintStrategy: PaintStrategy = PaintStrategy.OUTLINE;
 
-  fixedUnderlineLength: number;
+  fixedUnderlineLength: number = 20;
 
-  constructor(
-    marginX: number,
-    marginY: number,
-    figureStrategy: FigureStrategy,
-    paintStrategy: PaintStrategy,
-    fixedUnderlineLength: number
-  ) {
-    this.marginX = marginX;
-    this.marginY = marginY;
-    this.figureStrategy = figureStrategy;
-    this.paintStrategy = paintStrategy;
-    this.fixedUnderlineLength = fixedUnderlineLength;
-  }
-
-  static default(): Config {
-    return new Config(1, 2, FigureStrategy.UNDERLINE_FIXED, PaintStrategy.OUTLINE, 20);
-  }
+  autoScroll: boolean = true;
+  strictClickDetection: boolean = false;
 }

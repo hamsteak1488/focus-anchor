@@ -50,10 +50,10 @@ function updateIndicator(active: boolean) {
 // --- 로딩 ------------------------------------------------------------
 chrome.storage.sync.get("config").then(({ config }) => {
   if (!config) {
-    chrome.storage.sync.set({ config: Config.default });
-    configTextArea.value = JSON.stringify(Config.default, null, 2);
+    chrome.storage.sync.set({ config: new Config() });
+    configTextArea.value = JSON.stringify(new Config(), null, 2);
   } else {
-    const assignedConfig = Object.assign(Config.default(), config);
+    const assignedConfig = Object.assign(new Config(), config);
     configTextArea.value = JSON.stringify(assignedConfig, null, 2);
   }
 });
@@ -72,7 +72,7 @@ saveButton.onclick = save;
 
 // --- 리셋 ------------------------------------------------------------
 function reset() {
-  configTextArea.value = JSON.stringify(Config.default(), null, 2);
+  configTextArea.value = JSON.stringify(new Config(), null, 2);
   try {
     const json = JSON.parse(configTextArea.value);
     chrome.storage.sync.set({ config: json });
@@ -86,7 +86,7 @@ resetButton.onclick = reset;
 // --- 다른 탭·기기에서 변경 시 즉시 반영 ------------------------------
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "sync" && change.config) {
-    const assignedConfig = Object.assign(Config.default(), change.config.newValue);
+    const assignedConfig = Object.assign(new Config(), change.config.newValue);
     configTextArea.value = JSON.stringify(assignedConfig, null, 2);
     flash("↻ reloaded");
   }
