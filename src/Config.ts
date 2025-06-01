@@ -11,5 +11,5 @@ export class Config {
   fixedUnderlineLength: number = 20;
 
   autoScroll: boolean = true;
-  strictClickDetection: boolean = false;
+  strictClickDetection: boolean = true;
 }
