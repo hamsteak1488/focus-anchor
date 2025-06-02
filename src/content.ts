@@ -8,7 +8,7 @@ import { Point } from "./Point";
 import { Rect } from "./Rect";
 import { Stack } from "./Stack";
 
-class FocusedInfo {
+class FocusInfo {
   nodeIdx: number;
   anchorIdx: number;
 
@@ -21,8 +21,11 @@ class FocusedInfo {
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<number, Anchor[]>();
+const canvasMap = new Map<number, HTMLCanvasElement>();
+
 const rectMap = new Map<Anchor, Rect[]>();
 const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
+
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
 const ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
 const delimiters: Delimeter[] = [
@@ -34,7 +37,7 @@ const delimiters: Delimeter[] = [
 ];
 
 let focusActive = false;
-const focusedInfo = new FocusedInfo(0, 0);
+const focusInfo = new FocusInfo(0, 0);
 let config = new Config();
 
 const floorMergeTestRange = 10;
@@ -247,8 +250,8 @@ function init(): void {
 
   // 초기 인덱스 지정.
   const firstNodeIdx = anchorMap.keys().next().value as number;
-  focusedInfo.nodeIdx = firstNodeIdx;
-  focusedInfo.anchorIdx = 0;
+  focusInfo.nodeIdx = firstNodeIdx;
+  focusInfo.anchorIdx = 0;
 
   for (const nodeIdx of anchorMap.keys()) {
     console.debug(`nodeList[${nodeIdx}]: anchorIndices=${anchorMap.get(nodeIdx)!}`);
@@ -353,7 +356,7 @@ function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
   return floorSeperatedRects;
 }
 
-function findFocusedInfoFromNode(node: Node, clickedPoint: Point): FocusedInfo | null {
+function findFocusedInfoFromNode(node: Node, clickedPoint: Point): FocusInfo | null {
   // 텍스트를 클릭해도 clickedTarget에는 텍스트 노드가 아니라 그 상위 노드가 담김.
   // 앵커를 가진 노드는 모두 텍스트 노드이므로, 모든 노드에 대해 자식 노드로부터 영역 내 클릭 위치가 있는 앵커 탐색.
   for (const childNode of node.childNodes) {
@@ -376,7 +379,7 @@ function findFocusedInfoFromNode(node: Node, clickedPoint: Point): FocusedInfo |
           clickedPoint.y >= rect.top &&
           clickedPoint.y <= rect.bottom
         ) {
-          return new FocusedInfo(nodeIdxMap.get(childNode)!, i);
+          return new FocusInfo(nodeIdxMap.get(childNode)!, i);
         }
       }
     }
@@ -388,7 +391,7 @@ function findFocusedInfoFromNode(node: Node, clickedPoint: Point): FocusedInfo |
 function getFocusedInfoFromClickedNode(
   clickedNodeIdx: number,
   clickedPoint: Point
-): FocusedInfo | null {
+): FocusInfo | null {
   let pNode: Node | null = nodeList[clickedNodeIdx];
   while (pNode && nonSplitTagList.includes(pNode.nodeName)) {
     pNode = pNode.parentNode;
@@ -405,7 +408,7 @@ function getFocusedInfoFromClickedNode(
   // 만약 정확한 앵커를 찾지 못했다면, 근접한 앵커 정보라도 반환.
   for (let pNodeIdx = clickedNodeIdx; pNodeIdx < nodeList.length; pNodeIdx++) {
     if (anchorMap.has(pNodeIdx)) {
-      return new FocusedInfo(pNodeIdx, 0);
+      return new FocusInfo(pNodeIdx, 0);
     }
   }
 
@@ -588,39 +591,36 @@ function moveFocus(offset: number) {
   while (cnt > 0) {
     // 다음 목적지가 현재 노드 내 앵커인덱스 리스트에 존재할 경우.
     if (
-      focusedInfo.anchorIdx + dir >= 0 &&
-      focusedInfo.anchorIdx + dir <= anchorMap.get(focusedInfo.nodeIdx)!.length - 1
+      focusInfo.anchorIdx + dir >= 0 &&
+      focusInfo.anchorIdx + dir <= anchorMap.get(focusInfo.nodeIdx)!.length - 1
     ) {
-      focusedInfo.anchorIdx += dir;
+      focusInfo.anchorIdx += dir;
       cnt--;
       continue;
     }
 
     // 다음 목적지가 현재 노드 내 앵커인덱스 리스트를 벗어나는 경우.
     let endOfNode = false;
-    const nextfocusedInfo = new FocusedInfo(focusedInfo.nodeIdx, focusedInfo.anchorIdx);
+    const nextfocusInfo = new FocusInfo(focusInfo.nodeIdx, focusInfo.anchorIdx);
     while (true) {
-      if (
-        nextfocusedInfo.nodeIdx + dir < 0 ||
-        nextfocusedInfo.nodeIdx + dir > nodeList.length - 1
-      ) {
+      if (nextfocusInfo.nodeIdx + dir < 0 || nextfocusInfo.nodeIdx + dir > nodeList.length - 1) {
         endOfNode = true;
         break;
       }
 
-      if (!anchorMap.has(nextfocusedInfo.nodeIdx + dir)) {
-        console.debug(`${nextfocusedInfo.nodeIdx + dir} doesn't have anchorIndices`);
-        nextfocusedInfo.nodeIdx += dir;
+      if (!anchorMap.has(nextfocusInfo.nodeIdx + dir)) {
+        console.debug(`${nextfocusInfo.nodeIdx + dir} doesn't have anchorIndices`);
+        nextfocusInfo.nodeIdx += dir;
         continue;
       }
 
       // 앵커인덱스를 가진 노드 발견하면 focus idx update.
-      nextfocusedInfo.nodeIdx += dir;
+      nextfocusInfo.nodeIdx += dir;
       if (dir > 0) {
-        nextfocusedInfo.anchorIdx = 0;
+        nextfocusInfo.anchorIdx = 0;
       }
       if (dir < 0) {
-        nextfocusedInfo.anchorIdx = anchorMap.get(nextfocusedInfo.nodeIdx)!.length - 1;
+        nextfocusInfo.anchorIdx = anchorMap.get(nextfocusInfo.nodeIdx)!.length - 1;
       }
       break;
     }
@@ -628,8 +628,8 @@ function moveFocus(offset: number) {
     // 현재 노드가 마지막이라면 더 이상 이동하지 않고 종료.
     if (endOfNode) break;
 
-    focusedInfo.nodeIdx = nextfocusedInfo.nodeIdx;
-    focusedInfo.anchorIdx = nextfocusedInfo.anchorIdx;
+    focusInfo.nodeIdx = nextfocusInfo.nodeIdx;
+    focusInfo.anchorIdx = nextfocusInfo.anchorIdx;
 
     cnt--;
   }
@@ -638,8 +638,14 @@ function moveFocus(offset: number) {
 function scrollToFocusedAnchor(): void {
   if (!config.autoScroll) return;
 
-  const focusedAnchor = anchorMap.get(focusedInfo.nodeIdx)![focusedInfo.anchorIdx];
+  // const focusedElement = nodeList[focusInfo.nodeIdx].parentElement!;
+  const focusedAnchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
   const firstRectOfAnchor = rectMap.get(focusedAnchor)![0];
+
+  // console.log(`focusedElement=${focusedElement}`);
+  // focusedElement.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  // focusedElement.scroll(0, 10);
+  // focusedElement.scrollTo();
 
   scrollTo({
     top: firstRectOfAnchor.top - (window.innerHeight / 2 - firstRectOfAnchor.height / 2),
@@ -650,14 +656,14 @@ function scrollToFocusedAnchor(): void {
 function updateFocusedNode(): void {
   if (!focusActive) return;
 
-  console.debug(`focusedInfo.nodeIdx=${focusedInfo.nodeIdx}`);
-  console.debug(`focusedInfo.anchorIdx=${focusedInfo.anchorIdx}`);
+  console.debug(`focusInfo.nodeIdx=${focusInfo.nodeIdx}`);
+  console.debug(`focusInfo.anchorIdx=${focusInfo.anchorIdx}`);
 
-  const anchor = anchorMap.get(focusedInfo.nodeIdx)![focusedInfo.anchorIdx];
+  const anchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
 
   console.debug(
-    `anchorMap.get(${nodeList[focusedInfo.nodeIdx]}).length)=${
-      anchorMap.get(focusedInfo.nodeIdx)!.length
+    `anchorMap.get(${nodeList[focusInfo.nodeIdx]}).length)=${
+      anchorMap.get(focusInfo.nodeIdx)!.length
     }`
   );
   console.debug(`anchor=${anchor}`);
@@ -708,8 +714,8 @@ document.addEventListener("mouseup", function (e) {
   const res = getFocusedInfoFromClickedNode(clickedNodeIdx, new Point(clickedX, clickedY));
   if (!res) return;
 
-  focusedInfo.nodeIdx = res.nodeIdx;
-  focusedInfo.anchorIdx = res.anchorIdx;
+  focusInfo.nodeIdx = res.nodeIdx;
+  focusInfo.anchorIdx = res.anchorIdx;
 
   updateFocusedNode();
   scrollToFocusedAnchor();
