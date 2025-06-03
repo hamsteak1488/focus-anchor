@@ -23,9 +23,6 @@ const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<number, Anchor[]>();
 const canvasMap = new Map<number, HTMLCanvasElement>();
 
-const rectMap = new Map<Anchor, Rect[]>();
-const floorSeperatedRectMap = new Map<Anchor, Rect[]>();
-
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
 const ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
 const delimiters: Delimeter[] = [
@@ -49,11 +46,13 @@ let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
 if (!canvas) {
   canvas = document.createElement("canvas");
   canvas.id = "overlay-canvas";
-  canvas.style.position = "absolute";
-  canvas.style.top = "0";
-  canvas.style.left = "0";
-  canvas.style.pointerEvents = "none";
-  canvas.style.zIndex = "9999";
+  Object.assign(canvas.style, {
+    position: "fixed",
+    top: "0",
+    left: "0",
+    pointerEvents: "none",
+    zIndex: "9999",
+  });
   document.body.appendChild(canvas);
 }
 
@@ -212,8 +211,6 @@ function init(): void {
   nodeList.splice(0, nodeList.length);
   nodeIdxMap.clear();
   anchorMap.clear();
-  rectMap.clear();
-  floorSeperatedRectMap.clear();
   while (!fragmentListStack.isEmpty()) fragmentListStack.pop();
 
   updateCanvasSize();
@@ -253,26 +250,17 @@ function init(): void {
   focusInfo.nodeIdx = firstNodeIdx;
   focusInfo.anchorIdx = 0;
 
-  for (const nodeIdx of anchorMap.keys()) {
-    console.debug(`nodeList[${nodeIdx}]: anchorIndices=${anchorMap.get(nodeIdx)!}`);
-  }
+  // for (const nodeIdx of anchorMap.keys()) {
+  //   console.debug(`nodeList[${nodeIdx}]: anchorIndices=${anchorMap.get(nodeIdx)!}`);
+  // }
   console.debug(`nodeList.length=${nodeList.length}`);
 }
 
 function getRectFromDomRect(domRect: DOMRect): Rect {
-  return new Rect(
-    domRect.x + window.scrollX,
-    domRect.y + window.scrollY,
-    domRect.width,
-    domRect.height
-  );
+  return new Rect(domRect.x, domRect.y, domRect.width, domRect.height);
 }
 
 function getRectsFromAnchor(anchor: Anchor): Rect[] {
-  if (rectMap.has(anchor)) {
-    return rectMap.get(anchor)!;
-  }
-
   const range = document.createRange();
   range.setStart(nodeList[anchor.startNodeIdx], anchor.startOffsetIdx);
   range.setEnd(nodeList[anchor.endNodeIdx], anchor.endOffsetIdx);
@@ -298,8 +286,6 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
     return [];
   }
 
-  rectMap.set(anchor, rects);
-
   return rects;
 }
 
@@ -315,10 +301,6 @@ function getRectsAreaOfAnchor(anchor: Anchor): number {
 }
 
 function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
-  if (floorSeperatedRectMap.has(anchor)) {
-    return floorSeperatedRectMap.get(anchor)!;
-  }
-
   const rects = getRectsFromAnchor(anchor);
 
   rects.sort((a, b) => {
@@ -350,8 +332,6 @@ function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
       floorSeperatedRects[floorSeperatedRects.length - 1] = newRect;
     }
   }
-
-  floorSeperatedRectMap.set(anchor, floorSeperatedRects);
 
   return floorSeperatedRects;
 }
@@ -635,38 +615,139 @@ function moveFocus(offset: number) {
   }
 }
 
-function scrollToFocusedAnchor(): void {
+function scrollToFocusedAnchorV1(): void {
   if (!config.autoScroll) return;
 
-  // const focusedElement = nodeList[focusInfo.nodeIdx].parentElement!;
+  const focusedElement = nodeList[focusInfo.nodeIdx].parentElement!;
   const focusedAnchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
-  const firstRectOfAnchor = rectMap.get(focusedAnchor)![0];
+  const firstRectOfAnchor = getRectsFromAnchor(focusedAnchor)![0];
 
   // console.log(`focusedElement=${focusedElement}`);
-  // focusedElement.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+  focusedElement.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
   // focusedElement.scroll(0, 10);
   // focusedElement.scrollTo();
 
-  scrollTo({
-    top: firstRectOfAnchor.top - (window.innerHeight / 2 - firstRectOfAnchor.height / 2),
-    behavior: "smooth",
+  // scrollTo({
+  //   top: firstRectOfAnchor.top - (window.innerHeight / 2 - firstRectOfAnchor.height / 2),
+  //   behavior: "smooth",
+  // });
+  console.debug(
+    `firstRectOfAnchor.top - window.innerHeight / 2=${
+      firstRectOfAnchor.top - window.innerHeight / 2
+    }`
+  );
+  // scrollBy({
+  //   top: firstRectOfAnchor.top - window.innerHeight / 2,
+  //   behavior: "smooth",
+  // });
+
+  // console.debug(`focusedAnchor.startNodeIdx]=${focusedAnchor.startNodeIdx}`);
+  // console.debug(`focusedAnchor.startOffsetIdx]=${focusedAnchor.startOffsetIdx}`);
+  // console.debug(`focusedAnchor.endNodeIdx]=${focusedAnchor.endNodeIdx}`);
+  // console.debug(`focusedAnchor.endOffsetIdx]=${focusedAnchor.endOffsetIdx}`);
+}
+
+function isScrollable(node: HTMLElement): boolean {
+  const overflowY = getComputedStyle(node).overflowY;
+  return (overflowY === "scroll" || overflowY === "auto") && node.scrollHeight > node.clientHeight;
+}
+
+function getOffsetYFromElementToNode(from: HTMLElement, to: Node): number {
+  const range = document.createRange();
+  range.setStart(to, 0);
+  range.setEnd(to, 0);
+  const toRect = range.getBoundingClientRect();
+  const fromRect = from.getBoundingClientRect();
+
+  return toRect.top - (from === document.scrollingElement ? 0 : fromRect.top);
+}
+
+function getOffsetYFromElementToElement(from: HTMLElement, to: HTMLElement): number {
+  const toRect = to.getBoundingClientRect();
+  const fromRect = from.getBoundingClientRect();
+
+  return toRect.top - (from === document.scrollingElement ? 0 : fromRect.top);
+}
+
+function scrollToTextNode(node: Node): void {
+  let scrollParent = node.parentElement;
+  while (scrollParent) {
+    if (isScrollable(scrollParent)) break;
+    scrollParent = scrollParent.parentElement;
+  }
+
+  if (scrollParent === document.body) {
+    scrollParent = document.scrollingElement as HTMLElement;
+  }
+
+  if (!scrollParent) return;
+
+  const offsetY = getOffsetYFromElementToNode(scrollParent, node);
+
+  scrollParent.scrollBy({
+    top: offsetY,
+    // behavior: "smooth",
   });
+
+  const deficientScroll = getOffsetYFromElementToNode(scrollParent, node);
+  console.debug(`deficientScroll=${deficientScroll}`);
+
+  if (scrollParent !== document.scrollingElement) {
+    scrollRecursively(scrollParent, deficientScroll);
+  }
+}
+
+function scrollRecursively(element: HTMLElement, extraOffset: number): void {
+  let scrollParent = element.parentElement;
+  while (scrollParent) {
+    if (isScrollable(scrollParent)) break;
+    scrollParent = scrollParent.parentElement;
+  }
+
+  if (scrollParent === document.body) {
+    scrollParent = document.scrollingElement as HTMLElement;
+  }
+
+  if (!scrollParent) return;
+
+  const offsetFromTop = getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
+
+  scrollParent.scrollBy({
+    top: offsetFromTop,
+    // behavior: "smooth",
+  });
+
+  const deficientScroll = getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
+
+  console.debug(`deficientScroll=${deficientScroll}`);
+
+  if (scrollParent !== document.scrollingElement) {
+    scrollRecursively(scrollParent, deficientScroll);
+  }
+}
+
+function scrollToFocusedAnchor(): void {
+  if (!config.autoScroll) return;
+
+  const focusedNode = nodeList[focusInfo.nodeIdx];
+
+  scrollToTextNode(focusedNode);
 }
 
 function updateFocusedNode(): void {
   if (!focusActive) return;
 
-  console.debug(`focusInfo.nodeIdx=${focusInfo.nodeIdx}`);
-  console.debug(`focusInfo.anchorIdx=${focusInfo.anchorIdx}`);
+  // console.debug(`focusInfo.nodeIdx=${focusInfo.nodeIdx}`);
+  // console.debug(`focusInfo.anchorIdx=${focusInfo.anchorIdx}`);
 
   const anchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
 
-  console.debug(
-    `anchorMap.get(${nodeList[focusInfo.nodeIdx]}).length)=${
-      anchorMap.get(focusInfo.nodeIdx)!.length
-    }`
-  );
-  console.debug(`anchor=${anchor}`);
+  // console.debug(
+  //   `anchorMap.get(${nodeList[focusInfo.nodeIdx]}).length)=${
+  //     anchorMap.get(focusInfo.nodeIdx)!.length
+  //   }`
+  // );
+  // console.debug(`anchor=${anchor}`);
 
   const rects = getFloorSeperatedRectsFromAnchor(anchor);
 
@@ -685,21 +766,39 @@ function printInfo(node: Node): void {
     -------------`);
 }
 
+let renderScheduled = false;
+function reRender(): void {
+  if (renderScheduled) return;
+  renderScheduled = true;
+
+  requestAnimationFrame(() => {
+    updateFocusedNode();
+    renderScheduled = false;
+  });
+}
+
 window.addEventListener("resize", () => {
   if (!focusActive) return;
 
   updateCanvasSize();
-  rectMap.clear();
-  floorSeperatedRectMap.clear();
-  updateFocusedNode();
+  reRender();
 });
+
+document.addEventListener(
+  "scroll",
+  function (e) {
+    if (!focusActive) return;
+    reRender();
+  },
+  true
+);
 
 document.addEventListener("mouseup", function (e) {
   if (!focusActive) return;
 
   const clickedTarget = e.target;
-  const clickedX = e.clientX + window.scrollX;
-  const clickedY = e.clientY + window.scrollY;
+  const clickedX = e.clientX;
+  const clickedY = e.clientY;
 
   if (!clickedTarget || !(clickedTarget instanceof Node)) {
     console.debug("Type of clicked target is not 'Node'");
