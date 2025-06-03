@@ -320,9 +320,7 @@ function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
     }
     // 옆면이 겹치는 경우. 바운딩 사각형 추가.
     else {
-      console.debug(
-        `getFloorSeperatedRectsFromRects: Detected overlappnig rectangles, idx of rect is ${i}`
-      );
+      // console.debug(`getFloorSeperatedRectsFromRects: Detected overlappnig rectangles, idx of rect is ${i}`);
       const newLeft = Math.min(rect.left, rects[i].left);
       const newTop = Math.min(rect.top, rects[i].top);
       const newRight = Math.max(rect.right, rects[i].right);
@@ -589,7 +587,7 @@ function moveFocus(offset: number) {
       }
 
       if (!anchorMap.has(nextfocusInfo.nodeIdx + dir)) {
-        console.debug(`${nextfocusInfo.nodeIdx + dir} doesn't have anchorIndices`);
+        // console.debug(`${nextfocusInfo.nodeIdx + dir} doesn't have anchorIndices`);
         nextfocusInfo.nodeIdx += dir;
         continue;
       }
@@ -615,47 +613,15 @@ function moveFocus(offset: number) {
   }
 }
 
-function scrollToFocusedAnchorV1(): void {
-  if (!config.autoScroll) return;
-
-  const focusedElement = nodeList[focusInfo.nodeIdx].parentElement!;
-  const focusedAnchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
-  const firstRectOfAnchor = getRectsFromAnchor(focusedAnchor)![0];
-
-  // console.log(`focusedElement=${focusedElement}`);
-  focusedElement.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-  // focusedElement.scroll(0, 10);
-  // focusedElement.scrollTo();
-
-  // scrollTo({
-  //   top: firstRectOfAnchor.top - (window.innerHeight / 2 - firstRectOfAnchor.height / 2),
-  //   behavior: "smooth",
-  // });
-  console.debug(
-    `firstRectOfAnchor.top - window.innerHeight / 2=${
-      firstRectOfAnchor.top - window.innerHeight / 2
-    }`
-  );
-  // scrollBy({
-  //   top: firstRectOfAnchor.top - window.innerHeight / 2,
-  //   behavior: "smooth",
-  // });
-
-  // console.debug(`focusedAnchor.startNodeIdx]=${focusedAnchor.startNodeIdx}`);
-  // console.debug(`focusedAnchor.startOffsetIdx]=${focusedAnchor.startOffsetIdx}`);
-  // console.debug(`focusedAnchor.endNodeIdx]=${focusedAnchor.endNodeIdx}`);
-  // console.debug(`focusedAnchor.endOffsetIdx]=${focusedAnchor.endOffsetIdx}`);
-}
-
 function isScrollable(node: HTMLElement): boolean {
   const overflowY = getComputedStyle(node).overflowY;
   return (overflowY === "scroll" || overflowY === "auto") && node.scrollHeight > node.clientHeight;
 }
 
-function getOffsetYFromElementToNode(from: HTMLElement, to: Node): number {
+function getOffsetYFromElementToAnchor(from: HTMLElement, to: Anchor): number {
   const range = document.createRange();
-  range.setStart(to, 0);
-  range.setEnd(to, 0);
+  range.setStart(nodeList[to.startNodeIdx], to.startOffsetIdx);
+  range.setEnd(nodeList[to.endNodeIdx], to.endOffsetIdx);
   const toRect = range.getBoundingClientRect();
   const fromRect = from.getBoundingClientRect();
 
@@ -669,28 +635,37 @@ function getOffsetYFromElementToElement(from: HTMLElement, to: HTMLElement): num
   return toRect.top - (from === document.scrollingElement ? 0 : fromRect.top);
 }
 
-function scrollToTextNode(node: Node): void {
+function scrollToAnchor(anchor: Anchor, bias: number): void {
+  const node = nodeList[anchor.startNodeIdx];
+
   let scrollParent = node.parentElement;
   while (scrollParent) {
     if (isScrollable(scrollParent)) break;
     scrollParent = scrollParent.parentElement;
   }
 
-  if (scrollParent === document.body) {
+  if (!scrollParent || scrollParent === document.body) {
     scrollParent = document.scrollingElement as HTMLElement;
   }
 
-  if (!scrollParent) return;
+  const biasOffset = scrollParent.clientHeight * bias * -1;
+  const offsetY = getOffsetYFromElementToAnchor(scrollParent, anchor) + biasOffset;
 
-  const offsetY = getOffsetYFromElementToNode(scrollParent, node);
+  const maxScrollTop = scrollParent.scrollHeight - scrollParent.clientHeight;
+  const availableIncreaseScrollAmount = maxScrollTop - scrollParent.scrollTop;
+  const availableDecreaseScrollAmount = scrollParent.scrollTop;
+  const deficientScroll =
+    offsetY > 0
+      ? Math.max(0, offsetY - availableIncreaseScrollAmount)
+      : Math.max(0, Math.abs(offsetY) - availableDecreaseScrollAmount) * -1;
+
+  // console.debug(`biasOffset=${biasOffset}`);
+  // console.debug(`deficientScroll=${deficientScroll}`);
 
   scrollParent.scrollBy({
     top: offsetY,
-    // behavior: "smooth",
+    behavior: config.scrollBehavior,
   });
-
-  const deficientScroll = getOffsetYFromElementToNode(scrollParent, node);
-  console.debug(`deficientScroll=${deficientScroll}`);
 
   if (scrollParent !== document.scrollingElement) {
     scrollRecursively(scrollParent, deficientScroll);
@@ -710,16 +685,22 @@ function scrollRecursively(element: HTMLElement, extraOffset: number): void {
 
   if (!scrollParent) return;
 
-  const offsetFromTop = getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
+  const offsetY = getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
+
+  const maxScrollTop = scrollParent.scrollHeight - scrollParent.clientHeight;
+  const availableIncreaseScrollAmount = maxScrollTop - scrollParent.scrollTop;
+  const availableDecreaseScrollAmount = scrollParent.scrollTop;
+  const deficientScroll =
+    offsetY > 0
+      ? Math.max(0, offsetY - availableIncreaseScrollAmount)
+      : Math.max(0, Math.abs(offsetY) - availableDecreaseScrollAmount) * -1;
+
+  // console.debug(`deficientScroll=${deficientScroll}`);
 
   scrollParent.scrollBy({
-    top: offsetFromTop,
-    // behavior: "smooth",
+    top: offsetY,
+    behavior: config.scrollBehavior,
   });
-
-  const deficientScroll = getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
-
-  console.debug(`deficientScroll=${deficientScroll}`);
 
   if (scrollParent !== document.scrollingElement) {
     scrollRecursively(scrollParent, deficientScroll);
@@ -729,9 +710,9 @@ function scrollRecursively(element: HTMLElement, extraOffset: number): void {
 function scrollToFocusedAnchor(): void {
   if (!config.autoScroll) return;
 
-  const focusedNode = nodeList[focusInfo.nodeIdx];
+  const focusedAnchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
 
-  scrollToTextNode(focusedNode);
+  scrollToAnchor(focusedAnchor, config.focusYBias);
 }
 
 function updateFocusedNode(): void {

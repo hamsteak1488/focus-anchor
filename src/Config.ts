@@ -11,5 +11,9 @@ export class Config {
   fixedUnderlineLength: number = 20;
 
   autoScroll: boolean = true;
+  scrollBehavior: ScrollBehavior = "smooth";
+
   strictClickDetection: boolean = true;
+
+  focusYBias: number = 0.2;
 }
