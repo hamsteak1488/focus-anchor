@@ -221,12 +221,29 @@ function init(): void {
     nodeIdxMap.set(nodeList[i], i);
   }
 
-  // 최소 영역 만족 못하는 앵커 제거.
+  // 최소 영역 만족 못하거나 보이지 않는 앵커 제거.
   anchorMap.forEach((anchors, node) => {
     anchorMap.set(
       node,
       anchors.filter((anchor) => {
-        return getRectsAreaOfAnchor(anchor) >= minRectArea;
+        const node = nodeList[anchor.startNodeIdx];
+        const parentElement = node.parentElement!;
+        const style = getComputedStyle(parentElement);
+        const parentElementArea = parentElement.clientWidth * parentElement.clientHeight;
+        if (
+          style.display === "none" ||
+          style.visibility === "hidden" ||
+          parseFloat(style.opacity) === 0 ||
+          parseFloat(style.width) === 0 ||
+          parseFloat(style.height) === 0 ||
+          parentElement.hasAttribute("hidden") ||
+          parentElement.getAttribute("aria-hidden") === "true" ||
+          getRectsAreaOfAnchor(anchor) < minRectArea ||
+          parentElementArea < minRectArea
+        ) {
+          return false;
+        }
+        return true;
       })
     );
   });
