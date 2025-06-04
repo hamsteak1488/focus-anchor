@@ -258,8 +258,8 @@ function init(): void {
       deleteAnchorsKeys.push(nodeIdx);
     }
   }
-  for (const key of deleteAnchorsKeys) {
-    anchorMap.delete(key);
+  for (const nodeIdx of deleteAnchorsKeys) {
+    anchorMap.delete(nodeIdx);
   }
 
   // 초기 인덱스 지정.
@@ -299,7 +299,7 @@ function getRectsFromAnchor(anchor: Anchor): Rect[] {
   }
 
   if (!rects || rects.length == 0) {
-    console.debug("getRectsFromAnchor: Failed to get rects from domRects");
+    console.warn("getRectsFromAnchor: Failed to get rects from domRects");
     return [];
   }
 
