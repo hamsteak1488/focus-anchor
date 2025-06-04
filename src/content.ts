@@ -303,6 +303,11 @@ function getRectsAreaOfAnchor(anchor: Anchor): number {
 function getFloorSeperatedRectsFromAnchor(anchor: Anchor): Rect[] {
   const rects = getRectsFromAnchor(anchor);
 
+  if (rects.length == 0) {
+    console.debug("getFloorSeperatedRectsFromAnchor: Failed to get rects from getRectsFromAnchor");
+    return [];
+  }
+
   rects.sort((a, b) => {
     return a.y - b.y;
   });
@@ -562,7 +567,7 @@ function deactivateFocus(): void {
   clearCanvas();
 }
 
-function moveFocus(offset: number) {
+function moveFocus(offset: number): boolean {
   const dir = Math.sign(offset);
   let cnt = Math.abs(offset);
 
@@ -604,13 +609,15 @@ function moveFocus(offset: number) {
     }
 
     // 현재 노드가 마지막이라면 더 이상 이동하지 않고 종료.
-    if (endOfNode) break;
+    if (endOfNode) return false;
 
     focusInfo.nodeIdx = nextfocusInfo.nodeIdx;
     focusInfo.anchorIdx = nextfocusInfo.anchorIdx;
 
     cnt--;
   }
+
+  return true;
 }
 
 function isScrollable(node: HTMLElement): boolean {
@@ -715,6 +722,12 @@ function scrollToFocusedAnchor(): void {
   scrollToAnchor(focusedAnchor, config.focusYBias);
 }
 
+function existsAnchorRects(): boolean {
+  const anchor = anchorMap.get(focusInfo.nodeIdx)![focusInfo.anchorIdx];
+  const rects = getFloorSeperatedRectsFromAnchor(anchor);
+  return rects.length > 0;
+}
+
 function updateFocusedNode(): void {
   if (!focusActive) return;
 
@@ -731,6 +744,8 @@ function updateFocusedNode(): void {
   // console.debug(`anchor=${anchor}`);
 
   const rects = getFloorSeperatedRectsFromAnchor(anchor);
+
+  if (rects.length == 0) return;
 
   clearCanvas();
   drawRects(rects);
@@ -797,6 +812,8 @@ document.addEventListener("mouseup", function (e) {
   focusInfo.nodeIdx = res.nodeIdx;
   focusInfo.anchorIdx = res.anchorIdx;
 
+  if (!existsAnchorRects()) return;
+
   updateFocusedNode();
   scrollToFocusedAnchor();
 });
@@ -804,25 +821,30 @@ document.addEventListener("mouseup", function (e) {
 document.addEventListener("keydown", function (e) {
   if (!focusActive) return;
 
+  let moveDir = 0;
+
   switch (e.key) {
     case "ArrowUp":
-      moveFocus(-1);
-      e.preventDefault();
+      moveDir = -1;
       break;
     case "ArrowDown":
-      moveFocus(1);
-      e.preventDefault();
+      moveDir = 1;
       break;
     case "ArrowLeft":
-      moveFocus(-1);
-      e.preventDefault();
+      moveDir = -1;
       break;
     case "ArrowRight":
-      moveFocus(1);
-      e.preventDefault();
+      moveDir = 1;
       break;
     default:
       return;
+  }
+
+  e.preventDefault();
+
+  moveFocus(moveDir);
+  while (!existsAnchorRects()) {
+    moveFocus(moveDir);
   }
 
   updateFocusedNode();
