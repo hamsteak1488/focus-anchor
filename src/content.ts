@@ -229,17 +229,14 @@ function init(): void {
         const node = nodeList[anchor.startNodeIdx];
         const parentElement = node.parentElement!;
         const style = getComputedStyle(parentElement);
-        const parentElementArea = parentElement.clientWidth * parentElement.clientHeight;
         if (
           style.display === "none" ||
           style.visibility === "hidden" ||
           parseFloat(style.opacity) === 0 ||
-          parseFloat(style.width) === 0 ||
-          parseFloat(style.height) === 0 ||
+          parseFloat(style.width) * parseFloat(style.height) < minRectArea ||
           parentElement.hasAttribute("hidden") ||
           parentElement.getAttribute("aria-hidden") === "true" ||
-          getRectsAreaOfAnchor(anchor) < minRectArea ||
-          parentElementArea < minRectArea
+          getRectsAreaOfAnchor(anchor) < minRectArea
         ) {
           return false;
         }
