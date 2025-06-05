@@ -7,21 +7,14 @@ import { PaintStrategy } from "./PaintStrategy.enum";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 import { Stack } from "./Stack";
+import { FocusInfo } from "./FocusInfo";
+import { Renderer } from "./Renderer";
 
-class FocusInfo {
-  nodeIdx: number;
-  anchorIdx: number;
-
-  constructor(nodeIdx: number, anchorIdx: number) {
-    this.nodeIdx = nodeIdx;
-    this.anchorIdx = anchorIdx;
-  }
-}
+const renderer = new Renderer();
 
 const nodeList: Node[] = [];
 const nodeIdxMap = new Map<Node, number>();
 const anchorMap = new Map<number, Anchor[]>();
-const canvasMap = new Map<number, HTMLCanvasElement>();
 
 const nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
 const ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
@@ -40,76 +33,10 @@ let config = new Config();
 const floorMergeTestRange = 10;
 const minRectArea = 100;
 
-let fragmentListStack = new Stack<Fragment[]>();
-
-let canvas = document.getElementById("overlay-canvas") as HTMLCanvasElement;
-if (!canvas) {
-  canvas = document.createElement("canvas");
-  canvas.id = "overlay-canvas";
-  Object.assign(canvas.style, {
-    position: "fixed",
-    top: "0",
-    left: "0",
-    pointerEvents: "none",
-    zIndex: "9999",
-  });
-  document.body.appendChild(canvas);
-}
-
-const ctx = canvas.getContext("2d") as CanvasRenderingContext2D;
-
-function updateCanvasSize() {
-  // document의 전체 scrollable 영역을 계산
-  canvas.width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
-  canvas.height = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-}
-
-function traversalPreOrder(node: Node): void {
-  if (ignoreSplitTagList.includes(node.nodeName)) return;
-
-  nodeList.push(node);
-  nodeIdxMap.set(node, nodeList.length - 1);
-
-  // 탐색 대상이 텍스트 노드라면, 텍스트조각으로 분리해서 스택 최상단에 삽입.
-  if (node.nodeType == Node.TEXT_NODE) {
-    const trimmedContent = node.textContent?.trim();
-    if (trimmedContent) {
-      for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
-      }
-    }
-    return;
-  }
-
-  // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
-  if (!nonSplitTagList.includes(node.nodeName)) {
-    fragmentListStack.push([]);
-  }
-
-  node.childNodes.forEach((child) => {
-    // console.debug(`start traversal = ${child.nodeName}`);
-    traversalPreOrder(child);
-    // console.debug(`end traversal = ${child.nodeName}`);
-
-    // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-    if (
-      child.nodeType != Node.TEXT_NODE &&
-      !nonSplitTagList.includes(child.nodeName) &&
-      !ignoreSplitTagList.includes(child.nodeName)
-    ) {
-      fragmentListStack.peek().push(new Fragment("", child, -1));
-    }
-  });
-
-  // 비분리 태그라면 상위 노드에서 해석해야하므로 반환.
-  if (nonSplitTagList.includes(node.nodeName)) {
-    return;
-  }
-
-  // 스택 최상단의 조각들을 이어붙여 해석.
-  let fragmentList = fragmentListStack.pop();
+function extractAnchorsFromFragments(fragmentList: Fragment[]) {
   let fragmentBuffer: Fragment[] = [];
   let stringBuffer = "";
+
   for (const fragment of fragmentList) {
     if (fragment.idx != -1) {
       fragmentBuffer.push(fragment);
@@ -197,6 +124,51 @@ function traversalPreOrder(node: Node): void {
   }
 }
 
+function traversalPreOrder(node: Node, fragmentListStack: Stack<Fragment[]>): void {
+  if (ignoreSplitTagList.includes(node.nodeName)) return;
+
+  nodeList.push(node);
+  nodeIdxMap.set(node, nodeList.length - 1);
+
+  // 탐색 대상이 텍스트 노드라면, 텍스트조각으로 분리해서 스택 최상단에 삽입.
+  if (node.nodeType == Node.TEXT_NODE) {
+    const trimmedContent = node.textContent?.trim();
+    if (trimmedContent) {
+      for (let i = 0; i < node.textContent!.length; i++) {
+        fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
+      }
+    }
+    return;
+  }
+
+  // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
+  if (!nonSplitTagList.includes(node.nodeName)) {
+    fragmentListStack.push([]);
+  }
+
+  node.childNodes.forEach((child) => {
+    traversalPreOrder(child, fragmentListStack);
+
+    // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
+    if (
+      child.nodeType != Node.TEXT_NODE &&
+      !nonSplitTagList.includes(child.nodeName) &&
+      !ignoreSplitTagList.includes(child.nodeName)
+    ) {
+      fragmentListStack.peek().push(new Fragment("", child, -1));
+    }
+  });
+
+  // 비분리 태그라면 상위 노드에서 해석해야하므로 반환.
+  if (nonSplitTagList.includes(node.nodeName)) {
+    return;
+  }
+
+  // 스택 최상단의 조각들을 이어붙여 해석.
+  let fragmentList = fragmentListStack.pop();
+  extractAnchorsFromFragments(fragmentList);
+}
+
 function init(): void {
   console.debug(`Started initializing.`);
 
@@ -211,11 +183,10 @@ function init(): void {
   nodeList.splice(0, nodeList.length);
   nodeIdxMap.clear();
   anchorMap.clear();
-  while (!fragmentListStack.isEmpty()) fragmentListStack.pop();
 
-  updateCanvasSize();
+  renderer.updateCanvasSize();
 
-  traversalPreOrder(document.body);
+  traversalPreOrder(document.body, new Stack<Fragment[]>());
 
   for (let i = 0; i < nodeList.length; i++) {
     nodeIdxMap.set(nodeList[i], i);
@@ -412,41 +383,11 @@ function getFocusedInfoFromClickedNode(
   return null;
 }
 
-function drawRectangle(rect: Rect, color: string): void {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-}
-
-function fillRectangle(rect: Rect, color: string): void {
-  ctx.fillStyle = color;
-  ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-}
-
-function clearRectangle(rect: Rect) {
-  ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
-}
-
-function drawPolygon(vertices: Point[], color: string): void {
-  if (vertices.length == 0) return;
-
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-
-  ctx.beginPath();
-  ctx.moveTo(vertices[vertices.length - 1].x, vertices[vertices.length - 1].y);
-  for (let i = 0; i < vertices.length; i++) {
-    ctx.lineTo(vertices[i].x, vertices[i].y);
-  }
-  ctx.closePath();
-  ctx.stroke();
-}
-
 function drawRects(rects: Rect[]): void {
   if (!rects || rects.length == 0) return;
 
   if (config.paintStrategy == PaintStrategy.SPOTLIGHT) {
-    fillRectangle(new Rect(0, 0, canvas.width, canvas.height), "rgba(0, 0, 0, 0.5)");
+    renderer.fillScreen("rgba(0, 0, 0, 0.5)");
   }
 
   if (config.figureStrategy == FigureStrategy.UNDERLINE) {
@@ -457,7 +398,7 @@ function drawRects(rects: Rect[]): void {
         new Point(rect.left, rect.bottom + config.marginY),
         new Point(rect.right, rect.bottom + config.marginY)
       );
-      drawPolygon(polygonVertices, "red");
+      renderer.drawPolygon(polygonVertices, "red");
     }
   }
 
@@ -467,7 +408,7 @@ function drawRects(rects: Rect[]): void {
       new Point(rects[0].left, rects[0].bottom + config.marginY),
       new Point(rects[0].left + config.fixedUnderlineLength, rects[0].bottom + config.marginY)
     );
-    drawPolygon(polygonVertices, "red");
+    renderer.drawPolygon(polygonVertices, "red");
   }
 
   if (config.figureStrategy == FigureStrategy.RECT) {
@@ -482,12 +423,12 @@ function drawRects(rects: Rect[]): void {
     }
     if (config.paintStrategy == PaintStrategy.OUTLINE) {
       for (const marginAppliedRect of marginAppliedRects) {
-        drawRectangle(marginAppliedRect, "red");
+        renderer.drawRectangle(marginAppliedRect, "red");
       }
     }
     if (config.paintStrategy == PaintStrategy.SPOTLIGHT) {
       for (const marginAppliedRect of marginAppliedRects) {
-        clearRectangle(marginAppliedRect);
+        renderer.clearRectangle(marginAppliedRect);
       }
     }
   }
@@ -531,7 +472,7 @@ function drawRects(rects: Rect[]): void {
             polygonVertices.push(leftVertices[i]);
           }
 
-          drawPolygon(polygonVertices, "red");
+          renderer.drawPolygon(polygonVertices, "red");
 
           leftVertices.splice(0, leftVertices.length);
           rightVertices.splice(0, rightVertices.length);
@@ -566,19 +507,15 @@ function drawRects(rects: Rect[]): void {
     for (let i = leftVertices.length - 1; i >= 0; i--) {
       polygonVertices.push(leftVertices[i]);
     }
-    drawPolygon(polygonVertices, "red");
+    renderer.drawPolygon(polygonVertices, "red");
   }
-}
-
-function clearCanvas(): void {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
 function activateFocus(): void {
   init();
 }
 function deactivateFocus(): void {
-  clearCanvas();
+  renderer.clearCanvas();
 }
 
 function moveFocus(offset: number): boolean {
@@ -761,7 +698,7 @@ function updateFocusedNode(): void {
 
   if (rects.length == 0) return;
 
-  clearCanvas();
+  renderer.clearCanvas();
   drawRects(rects);
 }
 
@@ -777,7 +714,7 @@ function printInfo(node: Node): void {
 }
 
 let renderScheduled = false;
-function reRender(): void {
+function rerender(): void {
   if (renderScheduled) return;
   renderScheduled = true;
 
@@ -790,15 +727,15 @@ function reRender(): void {
 window.addEventListener("resize", () => {
   if (!focusActive) return;
 
-  updateCanvasSize();
-  reRender();
+  renderer.updateCanvasSize();
+  rerender();
 });
 
 document.addEventListener(
   "scroll",
   function (e) {
     if (!focusActive) return;
-    reRender();
+    rerender();
   },
   true
 );
