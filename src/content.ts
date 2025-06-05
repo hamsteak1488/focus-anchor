@@ -859,9 +859,11 @@ document.addEventListener("keydown", function (e) {
 
   e.preventDefault();
 
-  moveFocus(moveDir);
+  const movedOnce = moveFocus(moveDir);
+  if (!movedOnce) return;
   while (!existsAnchorRects()) {
-    moveFocus(moveDir);
+    const moved = moveFocus(moveDir);
+    if (!moved) break;
   }
 
   updateFocusedNode();
