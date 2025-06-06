@@ -1,8 +1,3 @@
-/**
- * src/debug.ts
- * → jsdom + canvas + content.ts 의 load 이벤트 핸들러를 강제 실행
- */
-
 import { readFileSync } from "fs";
 import createGlobalJsdom from "global-jsdom";
 import { Canvas, Image, ImageData } from "canvas";
@@ -43,17 +38,17 @@ const cleanup = createGlobalJsdom(html, {
 
 (async () => {
   try {
-    // 3) content.ts 를 불러오면, 그 안에서 load 이벤트 핸들러가 등록됨
+    // 3) content.ts 를 불러오면, 그 안에서 load 이벤트 핸들러 등록
     await import("./content");
     console.log("[debug] content.ts imported");
 
-    // 4) 여기서 load 이벤트를 강제로 날려 줌
+    // 4) 여기서 load 이벤트를 강제로 날리기
     window.dispatchEvent(new window.Event("load"));
     console.log("[debug] window.load dispatched");
   } catch (err) {
     console.error(err);
   } finally {
-    // 5) N초 뒤에 cleanup(), 그 사이에 content.ts 로직(1초 지연 포함)이 다 돌아감
+    // 5) N초 뒤에 cleanup()
     setTimeout(() => {
       cleanup();
       console.log("[debug] jsdom cleaned up");
