@@ -23,7 +23,7 @@ export class FocusManager {
   ];
 
   focusInfo = new FocusInfo(0, 0);
-  config = new Config();
+  config = Config.getInstance();
 
   floorMergeTestRange = 10;
   minRectArea = 100;

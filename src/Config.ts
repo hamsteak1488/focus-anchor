@@ -1,12 +1,25 @@
-import { FigureStrategy } from "./FigureStrategy.enum";
-import { PaintStrategy } from "./PaintStrategy.enum";
+import { DrawStrategy } from "./draw/DrawStrategy.enum";
 
 export class Config {
+  private static instance: Config;
+
+  private constructor() {}
+
+  static getInstance(): Config {
+    if (!Config.instance) {
+      Config.instance = new Config();
+    }
+    return Config.instance;
+  }
+
+  static get defaultJson(): string {
+    return JSON.stringify(new Config(), null, 2);
+  }
+
   marginX: number = 1;
   marginY: number = 2;
 
-  figureStrategy: FigureStrategy = FigureStrategy.UNDERLINE_FIXED;
-  paintStrategy: PaintStrategy = PaintStrategy.OUTLINE;
+  drawStrategy: DrawStrategy = DrawStrategy.Outline;
 
   fixedUnderlineLength: number = 20;
 

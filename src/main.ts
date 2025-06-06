@@ -47,52 +47,47 @@ function updateIndicator(active: boolean) {
   focusToggleButton.style.backgroundColor = active ? "chartreuse" : "darkorange";
 }
 
-// --- 로딩 ------------------------------------------------------------
 chrome.storage.sync.get("config").then(({ config }) => {
   if (!config) {
-    chrome.storage.sync.set({ config: new Config() });
-    configTextArea.value = JSON.stringify(new Config(), null, 2);
+    chrome.storage.sync.set({ config: Config.defaultJson });
+    configTextArea.value = Config.defaultJson;
   } else {
-    const assignedConfig = Object.assign(new Config(), config);
+    const assignedConfig = Object.assign(JSON.parse(Config.defaultJson), config);
     configTextArea.value = JSON.stringify(assignedConfig, null, 2);
   }
 });
 
-// --- 저장 ------------------------------------------------------------
 function save() {
   try {
     const json = JSON.parse(configTextArea.value);
     chrome.storage.sync.set({ config: json });
     flash("✔ saved");
   } catch {
-    flash("✖ JSON 오류", true);
+    flash("✖ JSON error", true);
   }
 }
 saveButton.onclick = save;
 
-// --- 리셋 ------------------------------------------------------------
 function reset() {
-  configTextArea.value = JSON.stringify(new Config(), null, 2);
+  configTextArea.value = Config.defaultJson;
   try {
     const json = JSON.parse(configTextArea.value);
     chrome.storage.sync.set({ config: json });
     flash("✔ reseted");
   } catch {
-    flash("✖ JSON 오류", true);
+    flash("✖ JSON error", true);
   }
 }
 resetButton.onclick = reset;
 
-// --- 다른 탭·기기에서 변경 시 즉시 반영 ------------------------------
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "sync" && change.config) {
-    const assignedConfig = Object.assign(new Config(), change.config.newValue);
+    const assignedConfig = Object.assign(JSON.parse(Config.defaultJson), change.config.newValue);
     configTextArea.value = JSON.stringify(assignedConfig, null, 2);
     flash("↻ reloaded");
   }
 });
 
-// --- 버튼에 잠깐 피드백 ---------------------------------------------
 function flash(text: string, error = false): void {
   state.textContent = text;
   state.style.color = error ? "red" : "green";
