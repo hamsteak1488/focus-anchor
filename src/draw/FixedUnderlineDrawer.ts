@@ -1,4 +1,4 @@
-import { Config } from "../Config";
+import { ConfigManager } from "../config/ConfigManager";
 import { Point } from "../Point";
 import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
@@ -6,7 +6,7 @@ import { Drawer } from "./Drawer";
 
 export class FixedUnderlineDrawer implements Drawer {
   draw(renderer: Renderer, rects: Rect[]): void {
-    const config = Config.getInstance();
+    const config = ConfigManager.getInstance();
 
     const polygonVertices: Point[] = [];
     polygonVertices.push(

@@ -1,11 +1,11 @@
-import { Config } from "../Config";
+import { ConfigManager } from "../config/ConfigManager";
 import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
 
 export class SpotlightDrawer implements Drawer {
   draw(renderer: Renderer, rects: Rect[]): void {
-    const config = Config.getInstance();
+    const config = ConfigManager.getInstance();
 
     renderer.fillScreen("rgba(0, 0, 0, 0.5)");
 

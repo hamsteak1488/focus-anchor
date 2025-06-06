@@ -1,4 +1,3 @@
-import { Config } from "./Config";
 import { Point } from "./Point";
 import { Renderer } from "./Renderer";
 import { FocusManager } from "./FocusManager";
@@ -9,6 +8,8 @@ import { FixedUnderlineDrawer } from "./draw/FixedUnderlineDrawer";
 import { UnderlineDrawer } from "./draw/UnderlineDrawer";
 import { MergedOutlineDrawer } from "./draw/MergedOutlineDrawer";
 import { SpotlightDrawer } from "./draw/SpotlightDrawer";
+import { ConfigManager } from "./config/ConfigManager";
+import { Config } from "./config/Config";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -22,19 +23,18 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
 ]);
 
 let focusActive = false;
-const config = Config.getInstance();
+const config = ConfigManager.getInstance();
 
 function init(): void {
   console.debug(`Started initializing.`);
 
   chrome.storage.sync.get("config").then(({ config: loadedConfig }) => {
     if (loadedConfig) {
-      Object.assign<Config, string>(config, loadedConfig);
+      config.assignProperties(loadedConfig);
     }
   });
 
   renderer.updateCanvasSize();
-  focusManager.config = config;
   focusManager.init();
 }
 
@@ -51,7 +51,7 @@ function drawFocusAnchor(): void {
 
   renderer.clearCanvas();
 
-  const drawer = drawerMap.get(config.drawStrategy);
+  const drawer = drawerMap.get(config.drawStrategy.selected);
 
   if (!drawer) {
     console.warn(`Cannot found drawer`);
@@ -175,6 +175,8 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "sync" && change.config) {
-    Object.assign(config, change.config.newValue);
+    // console.debug(`change.config.newValue=${JSON.stringify(change.config.newValue)}`);
+    // Object.assign(config, change.config.newValue);
+    config.assignProperties(change.config.newValue);
   }
 });

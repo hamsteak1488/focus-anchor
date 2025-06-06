@@ -1,5 +1,5 @@
 import { Anchor } from "./Anchor";
-import { Config } from "./Config";
+import { ConfigManager } from "./config/ConfigManager";
 import { Delimeter } from "./Delimeter";
 import { FocusInfo } from "./FocusInfo";
 import { Fragment } from "./Fragment";
@@ -8,13 +8,13 @@ import { Rect } from "./Rect";
 import { Stack } from "./Stack";
 
 export class FocusManager {
-  nodeList: Node[] = [];
-  nodeIdxMap = new Map<Node, number>();
-  anchorMap = new Map<number, Anchor[]>();
+  private nodeList: Node[] = [];
+  private nodeIdxMap = new Map<Node, number>();
+  private anchorMap = new Map<number, Anchor[]>();
 
-  nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
-  ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
-  delimiters: Delimeter[] = [
+  private nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
+  private ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
+  private delimiters: Delimeter[] = [
     new Delimeter(". ", 1),
     new Delimeter("? ", 1),
     new Delimeter("! ", 1),
@@ -22,11 +22,11 @@ export class FocusManager {
     new Delimeter(". ", 0),
   ];
 
-  focusInfo = new FocusInfo(0, 0);
-  config = Config.getInstance();
+  private focusInfo = new FocusInfo(0, 0);
+  private config = ConfigManager.getInstance();
 
-  floorMergeTestRange = 10;
-  minRectArea = 100;
+  private floorMergeTestRange = 10;
+  private minRectArea = 100;
 
   init() {
     this.nodeList.splice(0, this.nodeList.length);
@@ -490,7 +490,7 @@ export class FocusManager {
 
     scrollParent.scrollBy({
       top: offsetY,
-      behavior: this.config.scrollBehavior,
+      behavior: this.config.scrollBehavior.selected,
     });
 
     if (scrollParent !== document.scrollingElement) {
@@ -525,7 +525,7 @@ export class FocusManager {
 
     scrollParent.scrollBy({
       top: offsetY,
-      behavior: this.config.scrollBehavior,
+      behavior: this.config.scrollBehavior.selected,
     });
 
     if (scrollParent !== document.scrollingElement) {

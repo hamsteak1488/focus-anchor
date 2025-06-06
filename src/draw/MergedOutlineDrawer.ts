@@ -1,4 +1,4 @@
-import { Config } from "../Config";
+import { ConfigManager } from "../config/ConfigManager";
 import { Point } from "../Point";
 import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
@@ -6,7 +6,7 @@ import { Drawer } from "./Drawer";
 
 export class MergedOutlineDrawer implements Drawer {
   draw(renderer: Renderer, rects: Rect[]): void {
-    const config = Config.getInstance();
+    const config = ConfigManager.getInstance();
 
     // 폴리곤 정점 구성
     const leftVertices: Point[] = [];
