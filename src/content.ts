@@ -9,7 +9,6 @@ import { UnderlineDrawer } from "./draw/UnderlineDrawer";
 import { MergedOutlineDrawer } from "./draw/MergedOutlineDrawer";
 import { SpotlightDrawer } from "./draw/SpotlightDrawer";
 import { ConfigManager } from "./config/ConfigManager";
-import { Config } from "./config/Config";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -26,8 +25,6 @@ let focusActive = false;
 const config = ConfigManager.getInstance();
 
 function init(): void {
-  console.debug(`Started initializing.`);
-
   chrome.storage.sync.get("config").then(({ config: loadedConfig }) => {
     if (loadedConfig) {
       config.assignProperties(loadedConfig);
@@ -61,14 +58,14 @@ function drawFocusAnchor(): void {
   drawer.draw(renderer, rects);
 }
 
-let renderScheduled = false;
-function rerender(): void {
-  if (renderScheduled) return;
-  renderScheduled = true;
+let drawScheduled = false;
+function registerDrawSchedule(): void {
+  if (drawScheduled) return;
+  drawScheduled = true;
 
   requestAnimationFrame(() => {
     drawFocusAnchor();
-    renderScheduled = false;
+    drawScheduled = false;
   });
 }
 
@@ -76,14 +73,14 @@ window.addEventListener("resize", () => {
   if (!focusActive) return;
 
   renderer.updateCanvasSize();
-  rerender();
+  registerDrawSchedule();
 });
 
 document.addEventListener(
   "scroll",
   function (e) {
     if (!focusActive) return;
-    rerender();
+    registerDrawSchedule();
   },
   true
 );
@@ -110,7 +107,7 @@ document.addEventListener("mouseup", function (e) {
 
   if (!focusManager.existsAnchorRects()) return;
 
-  drawFocusAnchor();
+  registerDrawSchedule();
   focusManager.scrollToFocusedAnchor();
 });
 
@@ -145,7 +142,7 @@ document.addEventListener("keydown", function (e) {
     if (!moved) break;
   }
 
-  drawFocusAnchor();
+  registerDrawSchedule();
   focusManager.scrollToFocusedAnchor();
 });
 
@@ -175,8 +172,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "sync" && change.config) {
-    // console.debug(`change.config.newValue=${JSON.stringify(change.config.newValue)}`);
-    // Object.assign(config, change.config.newValue);
     config.assignProperties(change.config.newValue);
+    if (focusActive) {
+      registerDrawSchedule();
+      focusManager.scrollToFocusedAnchor();
+    }
   }
 });

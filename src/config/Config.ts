@@ -56,5 +56,5 @@ export class Config {
 
   strictClickDetection: boolean = true;
 
-  focusYBias: number = 0.2;
+  focusYBias: number = 20;
 }

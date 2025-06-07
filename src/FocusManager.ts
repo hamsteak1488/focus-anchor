@@ -78,12 +78,17 @@ export class FocusManager {
     }
 
     // 초기 인덱스 지정.
-    const firstNodeIdx = this.anchorMap.keys().next().value as number;
+    let firstNodeIdx = -1;
+    for (const key of this.anchorMap.keys()) {
+      if (firstNodeIdx == -1 || key < firstNodeIdx) {
+        firstNodeIdx = key;
+      }
+    }
     this.focusInfo.nodeIdx = firstNodeIdx;
     this.focusInfo.anchorIdx = 0;
 
-    // for (const nodeIdx of anchorMap.keys()) {
-    //   console.debug(`nodeList[${nodeIdx}]: anchorIndices=${anchorMap.get(nodeIdx)!}`);
+    // for (const nodeIdx of this.anchorMap.keys()) {
+    //   console.debug(`nodeList[${nodeIdx}]: anchorIndices=${this.anchorMap.get(nodeIdx)!}`);
     // }
     console.debug(`nodeList.length=${this.nodeList.length}`);
   }
@@ -543,7 +548,7 @@ export class FocusManager {
 
     const focusedAnchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
 
-    this.scrollToAnchor(focusedAnchor, this.config.focusYBias);
+    this.scrollToAnchor(focusedAnchor, this.config.focusYBias / 100);
   }
 
   existsAnchorRects(): boolean {

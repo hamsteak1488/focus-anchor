@@ -4,7 +4,6 @@ import { DropdownConfigItem } from "./config/DropdownConfigItem";
 const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
 const configContainer = document.getElementById("config-container")!;
-const saveButton = document.getElementById("save") as HTMLButtonElement;
 const resetButton = document.getElementById("reset") as HTMLButtonElement;
 const state = document.getElementById("state") as HTMLElement;
 
@@ -70,11 +69,12 @@ function save() {
 
   chrome.storage.sync.set({ config: config });
 }
-saveButton.onclick = save;
 
 function reset() {
   setConfigElementsValue(Config.default);
   chrome.storage.sync.set({ config: Config.default });
+
+  flash("✔ Reseted!");
 }
 resetButton.onclick = reset;
 
@@ -83,8 +83,6 @@ chrome.storage.onChanged.addListener((change, area) => {
     const config = Config.default;
     Object.assign(config, change.config.newValue);
     setConfigElementsValue(config);
-
-    flash("↻ Changes have been applied");
   }
 });
 
@@ -103,7 +101,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 function loadStorageConfigs() {
   chrome.storage.sync.get("config").then(({ config }) => {
-    console.log(`typeof config = ${typeof config}`);
     if (config) {
       const storageConfig = Config.from(config);
       setConfigElementsValue(storageConfig);
@@ -121,9 +118,6 @@ function createConfigElements(): void {
     const value = config[key];
 
     const wrapper = document.createElement("div");
-    wrapper.style.display = "flex";
-    wrapper.style.justifyContent = "space-between";
-    wrapper.style.alignItems = "center";
     Object.assign(wrapper.style, {
       display: "flex",
       justifyContent: "space-between",
@@ -144,6 +138,7 @@ function createConfigElements(): void {
       input.style.maxWidth = "8ch";
       input.id = `config-${key}`;
       input.type = "number";
+      input.addEventListener("input", (e) => save());
 
       wrapper.appendChild(input);
     }
@@ -151,6 +146,7 @@ function createConfigElements(): void {
       const select = document.createElement("select");
       select.id = `config-${key}`;
       select.className = "form-select w-auto";
+      select.addEventListener("change", (e) => save());
 
       ["true", "false"].forEach((v) => {
         const option = document.createElement("option");
@@ -166,6 +162,8 @@ function createConfigElements(): void {
       const select = document.createElement("select");
       select.className = "form-select w-auto";
       select.id = `config-${key}`;
+      select.addEventListener("change", (e) => save());
+
       value.options.forEach((v) => {
         const option = document.createElement("option");
         option.value = v;
@@ -180,9 +178,6 @@ function createConfigElements(): void {
 }
 
 function setConfigElementsValue(config: Config): void {
-  console.log(`setConfigElementsValue: config= ${JSON.stringify(config)}`);
-  console.log(`setConfigElementsValue: typeof config = ${typeof config}`);
-
   for (const key of Object.keys(config) as (keyof Config)[]) {
     const value = config[key];
 
@@ -200,7 +195,6 @@ function setConfigElementsValue(config: Config): void {
     }
     if (value instanceof DropdownConfigItem) {
       const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
-      console.log(`setConfigElementsValue: value.selected= ${JSON.stringify(value.selected)}`);
       for (const option of selectElement.options) {
         if (option.value === String(value.selected)) {
           option.selected = true;
