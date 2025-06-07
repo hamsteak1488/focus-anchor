@@ -12,7 +12,7 @@ export class FocusManager {
   private nodeIdxMap = new Map<Node, number>();
   private anchorMap = new Map<number, Anchor[]>();
 
-  private nonSplitTagList: string[] = ["A", "B", "STRONG", "CODE", "SPAN", "SUP", "EM"];
+  private nonSplitTagList: string[] = ["A", "B", "CODE", "EM", "S", "SPAN", "STRONG", "SUP", "U"];
   private ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
   private delimiters: Delimeter[] = [
     new Delimeter(". ", 1),
