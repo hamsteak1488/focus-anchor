@@ -12,26 +12,32 @@
       crossorigin="anonymous"
     />
     <style>
-      .control-container {
+      #control-container {
         display: flex;
         gap: 4px;
       }
 
-      .control-container button {
+      #control-container button {
         display: flex;
         align-items: center;
         height: 30px;
         width: fit-content;
       }
 
-      .control-container img {
+      #control-container img {
         height: 100%;
+      }
+
+      #config-container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
       }
     </style>
   </head>
   <body>
     <div style="margin: 1em; width: 350px">
-      <div class="control-container">
+      <div id="control-container">
         <button id="focus-toggle" class="btn btn-light border-dark" style="font-weight: 600">
           Toggle Focus
         </button>

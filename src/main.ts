@@ -1,6 +1,5 @@
 import { Config } from "./config/Config";
 import { DropdownConfigItem } from "./config/DropdownConfigItem";
-import { DrawStrategy } from "./draw/DrawStrategy.enum";
 
 const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
@@ -9,8 +8,8 @@ const saveButton = document.getElementById("save") as HTMLButtonElement;
 const resetButton = document.getElementById("reset") as HTMLButtonElement;
 const state = document.getElementById("state") as HTMLElement;
 
-function updateIndicator(active: boolean) {
-  focusToggleButton.style.backgroundColor = active ? "chartreuse" : "darkorange";
+function updateIndicator(color: string) {
+  focusToggleButton.style.backgroundColor = color;
 }
 
 function flash(text: string, error = false): void {
@@ -37,7 +36,7 @@ focusToggleButton.addEventListener("click", async () => {
   chrome.tabs.sendMessage(tab.id!, { type: "toggle-focus" }, (resp) => {
     if (checkRuntimeError()) return;
     if (!resp) return;
-    updateIndicator(resp.isActive);
+    updateIndicator(resp.isActive ? "chartreuse" : "darkorange");
   });
 });
 
@@ -95,7 +94,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   chrome.tabs.sendMessage(tab.id!, { type: "get-focus-state" }, (resp) => {
     if (checkRuntimeError()) return;
     if (!resp) return;
-    updateIndicator(resp.isActive);
+    updateIndicator(resp.isActive ? "chartreuse" : "darkorange");
   });
 
   createConfigElements();
@@ -122,12 +121,27 @@ function createConfigElements(): void {
     const value = config[key];
 
     const wrapper = document.createElement("div");
+    wrapper.style.display = "flex";
+    wrapper.style.justifyContent = "space-between";
+    wrapper.style.alignItems = "center";
+    Object.assign(wrapper.style, {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      backgroundColor: "rgba(0, 0, 0, 0.1)",
+      "border-radius": "5px 20px 5px 20px",
+      padding: "10px",
+    });
+
     const label = document.createElement("label");
+    label.className = "form-label mb-0";
     label.textContent = key;
     wrapper.appendChild(label);
 
     if (typeof value == "number") {
       const input = document.createElement("input");
+      input.className = "form-control";
+      input.style.maxWidth = "8ch";
       input.id = `config-${key}`;
       input.type = "number";
 
@@ -136,6 +150,7 @@ function createConfigElements(): void {
     if (typeof value == "boolean") {
       const select = document.createElement("select");
       select.id = `config-${key}`;
+      select.className = "form-select w-auto";
 
       ["true", "false"].forEach((v) => {
         const option = document.createElement("option");
@@ -149,6 +164,7 @@ function createConfigElements(): void {
 
     if (value instanceof DropdownConfigItem) {
       const select = document.createElement("select");
+      select.className = "form-select w-auto";
       select.id = `config-${key}`;
       value.options.forEach((v) => {
         const option = document.createElement("option");
