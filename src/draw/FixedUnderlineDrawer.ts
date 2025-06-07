@@ -13,6 +13,6 @@ export class FixedUnderlineDrawer implements Drawer {
       new Point(rects[0].left, rects[0].bottom + config.marginY),
       new Point(rects[0].left + config.fixedUnderlineLength, rects[0].bottom + config.marginY)
     );
-    renderer.drawPolygon(polygonVertices, "red");
+    renderer.drawPolygon(polygonVertices, "red", config.lineWidth);
   }
 }

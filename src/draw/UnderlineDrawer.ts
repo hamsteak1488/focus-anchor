@@ -14,7 +14,7 @@ export class UnderlineDrawer implements Drawer {
         new Point(rect.left, rect.bottom + config.marginY),
         new Point(rect.right, rect.bottom + config.marginY)
       );
-      renderer.drawPolygon(polygonVertices, "red");
+      renderer.drawPolygon(polygonVertices, "red", config.lineWidth);
     }
   }
 }

@@ -40,11 +40,14 @@ export class Config {
   marginX: number = 1;
   marginY: number = 2;
 
-  drawStrategy = new DropdownConfigItem<DrawStrategy>(DrawStrategy.Outline, [
-    DrawStrategy.Spotlight,
-    DrawStrategy.Outline,
+  drawStrategy = new DropdownConfigItem<DrawStrategy>(DrawStrategy.FixedUnderline, [
     DrawStrategy.Underline,
+    DrawStrategy.FixedUnderline,
+    DrawStrategy.Outline,
+    DrawStrategy.MergedOutline,
+    DrawStrategy.Spotlight,
   ]);
+  lineWidth: number = 3;
 
   fixedUnderlineLength: number = 20;
 

@@ -36,9 +36,9 @@ export class Renderer {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawRectangle(rect: Rect, color: string): void {
+  drawRectangle(rect: Rect, color: string, lineWidth: number): void {
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 3;
+    this.ctx.lineWidth = lineWidth;
     this.ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
   }
 
@@ -51,11 +51,11 @@ export class Renderer {
     this.ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
   }
 
-  drawPolygon(vertices: Point[], color: string): void {
+  drawPolygon(vertices: Point[], color: string, lineWidth: number): void {
     if (vertices.length == 0) return;
 
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 3;
+    this.ctx.lineWidth = lineWidth;
 
     this.ctx.beginPath();
     this.ctx.moveTo(vertices[vertices.length - 1].x, vertices[vertices.length - 1].y);

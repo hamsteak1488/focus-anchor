@@ -46,7 +46,7 @@ export class MergedOutlineDrawer implements Drawer {
             polygonVertices.push(leftVertices[i]);
           }
 
-          renderer.drawPolygon(polygonVertices, "red");
+          renderer.drawPolygon(polygonVertices, "red", config.lineWidth);
 
           leftVertices.splice(0, leftVertices.length);
           rightVertices.splice(0, rightVertices.length);
@@ -81,6 +81,6 @@ export class MergedOutlineDrawer implements Drawer {
     for (let i = leftVertices.length - 1; i >= 0; i--) {
       polygonVertices.push(leftVertices[i]);
     }
-    renderer.drawPolygon(polygonVertices, "red");
+    renderer.drawPolygon(polygonVertices, "red", config.lineWidth);
   }
 }
