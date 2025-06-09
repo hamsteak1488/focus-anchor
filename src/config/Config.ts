@@ -37,24 +37,33 @@ export class Config {
     }
   }
 
-  marginX: number = 1;
-  marginY: number = 2;
+  marginX: number = parseInt(process.env.DEFAULT_MARGIN_X ?? "1");
+  marginY: number = parseInt(process.env.DEFAULT_MARGIN_Y ?? "2");
 
-  drawStrategy = new DropdownConfigItem<DrawStrategy>(DrawStrategy.FixedUnderline, [
-    DrawStrategy.Underline,
-    DrawStrategy.FixedUnderline,
-    DrawStrategy.Outline,
-    DrawStrategy.MergedOutline,
-    DrawStrategy.Spotlight,
-  ]);
-  lineWidth: number = 3;
+  drawStrategy = new DropdownConfigItem<DrawStrategy>(
+    DrawStrategy[(process.env.DEFAULT_DRAW_STRATEGY as keyof typeof DrawStrategy) ?? "Underline"],
+    [
+      DrawStrategy.Underline,
+      DrawStrategy.FixedUnderline,
+      DrawStrategy.Outline,
+      DrawStrategy.MergedOutline,
+      DrawStrategy.Spotlight,
+    ]
+  );
+  lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
+  fixedUnderlineLength: number = parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20");
 
-  fixedUnderlineLength: number = 20;
+  autoScroll: boolean = process.env.DEFAULT_AUTO_SCROLL
+    ? process.env.DEFAULT_AUTO_SCROLL == "true"
+    : true;
+  scrollBehavior = new DropdownConfigItem<ScrollBehavior>(
+    (process.env.DEFAULT_SCROLL_BEHAVIOR as ScrollBehavior) ?? "smooth",
+    ["smooth", "instant"]
+  );
 
-  autoScroll: boolean = true;
-  scrollBehavior = new DropdownConfigItem<ScrollBehavior>("smooth", ["smooth", "instant"]);
+  strictClickDetection: boolean = process.env.DEFAULT_AUTO_SCROLL
+    ? process.env.DEFAULT_AUTO_SCROLL == "true"
+    : true;
 
-  strictClickDetection: boolean = true;
-
-  focusYBias: number = 20;
+  focusYBias: number = parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "20");
 }
