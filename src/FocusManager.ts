@@ -92,17 +92,13 @@ export class FocusManager {
     // for (const nodeIdx of this.anchorMap.keys()) {
     //   console.debug(`nodeList[${nodeIdx}]: anchorIndices=${this.anchorMap.get(nodeIdx)!}`);
     // }
-    console.debug(`nodeList.length=${this.nodeList.length}`);
+    // console.debug(`nodeList.length=${this.nodeList.length}`);
   }
 
   private traversalPreOrder(node: Node, fragmentListStack: Stack<Fragment[]>): void {
     if (node instanceof Element) {
       const zIndex = parseInt(getComputedStyle(node).zIndex);
       if (zIndex) {
-        console.debug(`zIndex=${zIndex}`);
-        if (zIndex > this.maxZIndex) {
-          console.debug(`${zIndex} is greater than maxZIndex(${this.maxZIndex})`);
-        }
         this.maxZIndex = Math.max(this.maxZIndex, zIndex);
       }
     }
@@ -261,7 +257,7 @@ export class FocusManager {
 
     const domRects = range.getClientRects();
     if (!domRects || domRects.length == 0) {
-      console.debug("getRectsFromAnchor: Failed to get client rects from a anchor");
+      // console.debug("getRectsFromAnchor: Failed to get client rects from a anchor");
       return [];
     }
 
@@ -461,25 +457,16 @@ export class FocusManager {
     );
   }
 
-  private getOffsetYFromElementToAnchor(from: HTMLElement, to: Anchor): number {
+  private getAnchorBoundingRect(anchor: Anchor): Rect {
     const range = document.createRange();
-    range.setStart(this.nodeList[to.startNodeIdx], to.startOffsetIdx);
-    range.setEnd(this.nodeList[to.endNodeIdx], to.endOffsetIdx);
-    const toRect = range.getBoundingClientRect();
-    const fromRect = from.getBoundingClientRect();
-
-    return toRect.top - (from === document.scrollingElement ? 0 : fromRect.top);
-  }
-
-  private getOffsetYFromElementToElement(from: HTMLElement, to: HTMLElement): number {
-    const toRect = to.getBoundingClientRect();
-    const fromRect = from.getBoundingClientRect();
-
-    return toRect.top - (from === document.scrollingElement ? 0 : fromRect.top);
+    range.setStart(this.nodeList[anchor.startNodeIdx], anchor.startOffsetIdx);
+    range.setEnd(this.nodeList[anchor.endNodeIdx], anchor.endOffsetIdx);
+    return range.getBoundingClientRect();
   }
 
   private scrollToAnchor(anchor: Anchor, bias: number): void {
     const node = this.nodeList[anchor.startNodeIdx];
+    const anchorRect = this.getAnchorBoundingRect(anchor);
 
     let scrollParent = node.parentElement;
     while (scrollParent) {
@@ -491,25 +478,42 @@ export class FocusManager {
       scrollParent = document.scrollingElement as HTMLElement;
     }
 
-    const biasOffset = scrollParent.clientHeight * bias * -1;
-    const offsetY = this.getOffsetYFromElementToAnchor(scrollParent, anchor) + biasOffset;
+    // 노드가 최종적으로 위치해야 할 뷰포트 내 타겟 Y좌표.
+    const targetY = document.body.clientHeight * bias;
+    const distFromAnchorToTargetY = anchorRect.top - targetY;
 
     const maxScrollTop = scrollParent.scrollHeight - scrollParent.clientHeight;
-    const availableIncreaseScrollAmount = maxScrollTop - scrollParent.scrollTop;
-    const availableDecreaseScrollAmount = scrollParent.scrollTop;
-    const deficientScroll =
-      offsetY > 0
-        ? Math.max(0, offsetY - availableIncreaseScrollAmount)
-        : Math.max(0, Math.abs(offsetY) - availableDecreaseScrollAmount) * -1;
+    const scrollParentTop =
+      scrollParent === document.scrollingElement ? 0 : scrollParent.getBoundingClientRect().top;
+    const scrollParentBottom =
+      scrollParent === document.scrollingElement
+        ? document.body.clientHeight
+        : scrollParent.getBoundingClientRect().bottom;
 
-    // console.debug(`biasOffset=${biasOffset}`);
-    // console.debug(`deficientScroll=${deficientScroll}`);
+    // 최대로 증가가능한 스크롤 양 계산.
+    // (스크롤바를 아래로 움직일 수 있는 양)과 (포커스된 문장이 스크롤로 인해 화면에서 사라지지 않는 최대 한도량) 중 더 작은값을 '스크롤 증가 한도량'으로 지정.
+    const availableIncreaseScrollAmount = Math.min(
+      maxScrollTop - scrollParent.scrollTop,
+      Math.max(0, anchorRect.top - scrollParentTop)
+    );
+    // 최대로 감소가능한 스크롤 양 계산.
+    const availableDecreaseScrollAmount = Math.min(
+      scrollParent.scrollTop,
+      Math.max(0, scrollParentBottom - anchorRect.bottom)
+    );
+
+    // 부모 스크롤 컨테이너를 최대한 움직였을 때 타겟 Y좌표까지 부족한 스크롤 계산.
+    const deficientScroll =
+      distFromAnchorToTargetY > 0
+        ? Math.max(0, distFromAnchorToTargetY - availableIncreaseScrollAmount)
+        : Math.max(0, Math.abs(distFromAnchorToTargetY) - availableDecreaseScrollAmount) * -1;
 
     scrollParent.scrollBy({
-      top: offsetY,
+      top: distFromAnchorToTargetY - deficientScroll,
       behavior: this.config.scrollBehavior.selected,
     });
 
+    // 부족한 스크롤은 조상 스크롤 컨테이너에게 전가.
     if (scrollParent !== document.scrollingElement) {
       this.scrollRecursively(scrollParent, deficientScroll);
     }
@@ -528,23 +532,22 @@ export class FocusManager {
 
     if (!scrollParent) return;
 
-    const offsetY = this.getOffsetYFromElementToElement(scrollParent, element) + extraOffset;
-
     const maxScrollTop = scrollParent.scrollHeight - scrollParent.clientHeight;
     const availableIncreaseScrollAmount = maxScrollTop - scrollParent.scrollTop;
     const availableDecreaseScrollAmount = scrollParent.scrollTop;
     const deficientScroll =
-      offsetY > 0
-        ? Math.max(0, offsetY - availableIncreaseScrollAmount)
-        : Math.max(0, Math.abs(offsetY) - availableDecreaseScrollAmount) * -1;
+      extraOffset > 0
+        ? Math.max(0, extraOffset - availableIncreaseScrollAmount)
+        : Math.max(0, Math.abs(extraOffset) - availableDecreaseScrollAmount) * -1;
 
     // console.debug(`deficientScroll=${deficientScroll}`);
 
     scrollParent.scrollBy({
-      top: offsetY,
+      top: extraOffset - deficientScroll,
       behavior: this.config.scrollBehavior.selected,
     });
 
+    // 부족한 스크롤은 또다시 조상 스크롤 컨테이너에게 전가.
     if (scrollParent !== document.scrollingElement) {
       this.scrollRecursively(scrollParent, deficientScroll);
     }
