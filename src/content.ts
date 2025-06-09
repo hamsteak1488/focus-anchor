@@ -31,8 +31,9 @@ function init(): void {
     }
   });
 
-  renderer.updateCanvasSize();
   focusManager.init();
+  renderer.updateCanvasSize();
+  renderer.updateCanvasZIndex(focusManager.maxZIndex + 1);
 }
 
 function activateFocus(): void {
@@ -97,7 +98,7 @@ document.addEventListener("mouseup", function (e) {
     return;
   }
   const clickedNode = clickedTarget as Node;
-  focusManager.printInfo(clickedNode as Node);
+  // focusManager.printInfo(clickedNode as Node);
 
   const focusMoved = focusManager.moveFocusFromClickInfo(
     clickedNode,

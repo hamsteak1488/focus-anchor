@@ -28,6 +28,8 @@ export class FocusManager {
   private floorMergeTestRange = 10;
   private minRectArea = 100;
 
+  public maxZIndex = 9999;
+
   init() {
     this.nodeList.splice(0, this.nodeList.length);
     this.nodeIdxMap.clear();
@@ -94,6 +96,16 @@ export class FocusManager {
   }
 
   private traversalPreOrder(node: Node, fragmentListStack: Stack<Fragment[]>): void {
+    if (node instanceof Element) {
+      const zIndex = parseInt(getComputedStyle(node).zIndex);
+      if (zIndex) {
+        console.debug(`zIndex=${zIndex}`);
+        if (zIndex > this.maxZIndex) {
+          console.debug(`${zIndex} is greater than maxZIndex(${this.maxZIndex})`);
+        }
+        this.maxZIndex = Math.max(this.maxZIndex, zIndex);
+      }
+    }
     if (this.ignoreSplitTagList.includes(node.nodeName)) return;
 
     this.nodeList.push(node);

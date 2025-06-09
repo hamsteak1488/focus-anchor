@@ -27,6 +27,10 @@ export class Renderer {
     this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
   }
 
+  updateCanvasZIndex(zIndex: number) {
+    this.canvas.style.zIndex = zIndex.toString();
+  }
+
   updateCanvasSize() {
     this.canvas.width = document.documentElement.clientWidth;
     this.canvas.height = document.documentElement.clientHeight;
