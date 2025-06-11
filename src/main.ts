@@ -67,19 +67,19 @@ function save() {
     }
   }
 
-  chrome.storage.sync.set({ config: config });
+  chrome.storage.local.set({ config: config });
 }
 
 function reset() {
   setConfigElementsValue(Config.default);
-  chrome.storage.sync.set({ config: Config.default });
+  chrome.storage.local.set({ config: Config.default });
 
   flash("✔ Reseted!");
 }
 resetButton.onclick = reset;
 
 chrome.storage.onChanged.addListener((change, area) => {
-  if (area === "sync" && change.config) {
+  if (area === "local" && change.config) {
     const config = Config.default;
     Object.assign(config, change.config.newValue);
     setConfigElementsValue(config);
@@ -100,7 +100,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 function loadStorageConfigs() {
-  chrome.storage.sync.get("config").then(({ config }) => {
+  chrome.storage.local.get("config").then(({ config }) => {
     if (config) {
       const storageConfig = Config.from(config);
       setConfigElementsValue(storageConfig);

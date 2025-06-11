@@ -28,7 +28,7 @@ let focusActive = false;
 const config = ConfigManager.getInstance();
 
 function init(): void {
-  chrome.storage.sync.get("config").then(({ config: loadedConfig }) => {
+  chrome.storage.local.get("config").then(({ config: loadedConfig }) => {
     if (loadedConfig) {
       config.assignProperties(loadedConfig);
     }
@@ -177,7 +177,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.storage.onChanged.addListener((change, area) => {
-  if (area === "sync" && change.config) {
+  if (area === "local" && change.config) {
     config.assignProperties(change.config.newValue);
     if (focusActive) {
       registerDrawSchedule();
