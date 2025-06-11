@@ -48,6 +48,7 @@ export class Config {
       DrawStrategy.Outline,
       DrawStrategy.MergedOutline,
       DrawStrategy.Spotlight,
+      DrawStrategy.FirsrChar,
     ]
   );
   lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
