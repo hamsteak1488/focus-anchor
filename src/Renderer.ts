@@ -46,9 +46,24 @@ export class Renderer {
     this.ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
   }
 
+  drawRoundRect(rect: Rect, color: string, lineWidth: number, radius: number): void {
+    this.ctx.strokeStyle = color;
+    this.ctx.beginPath();
+    this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
+    this.ctx.stroke();
+  }
+
   fillRect(rect: Rect, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
+  }
+
+  fillRoundRect(rect: Rect, color: string, radius: number): void {
+    this.ctx.fillStyle = color;
+    this.ctx.beginPath();
+    this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
+    this.ctx.fill();
+    this.ctx.stroke();
   }
 
   clearRect(rect: Rect) {

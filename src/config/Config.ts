@@ -52,6 +52,7 @@ export class Config {
     ]
   );
   lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
+  borderRadius: number = parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0");
   fixedUnderlineLength: number = parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20");
 
   autoScroll: boolean = process.env.DEFAULT_AUTO_SCROLL
