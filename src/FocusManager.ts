@@ -274,6 +274,39 @@ export class FocusManager {
     return rects;
   }
 
+  private getFirstCharRectFromAnchor(anchor: Anchor): Rect | null {
+    const node = this.nodeList[anchor.startNodeIdx];
+    if (!node.textContent) return null;
+
+    let startOffset = anchor.startOffsetIdx;
+    while (startOffset < anchor.endOffsetIdx) {
+      const ch = node.textContent[startOffset];
+      if (ch.trim().length == 0) {
+        startOffset++;
+      } else {
+        break;
+      }
+    }
+
+    if (startOffset == anchor.endOffsetIdx) return null;
+
+    const range = document.createRange();
+    range.setStart(node, startOffset);
+    range.setEnd(node, startOffset + 1);
+
+    if (typeof range.getClientRects !== "function") {
+      console.warn("getClientRects를 지원하지 않는 환경입니다.");
+      return null;
+    }
+
+    const domRects = range.getClientRects();
+    if (!domRects || domRects.length == 0) {
+      return null;
+    }
+
+    return this.getRectFromDomRect(domRects[0]);
+  }
+
   private getRectsAreaOfAnchor(anchor: Anchor): number {
     const rects = this.getRectsFromAnchor(anchor);
 
@@ -553,9 +586,14 @@ export class FocusManager {
     }
   }
 
-  getCurrentFocusRects(): Rect[] {
+  getSentenceRects(): Rect[] {
     const anchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
     return this.getFloorSeperatedRectsFromAnchor(anchor);
+  }
+
+  getFirstCharRect(): Rect | null {
+    const anchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
+    return this.getFirstCharRectFromAnchor(anchor);
   }
 
   scrollToFocusedAnchor(): void {

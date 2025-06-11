@@ -1,19 +1,19 @@
+import { AnchorDrawInfo } from "../AnchorDrawInfo";
 import { ConfigManager } from "../config/ConfigManager";
 import { Point } from "../Point";
-import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
 
 export class MergedOutlineDrawer implements Drawer {
-  draw(renderer: Renderer, rects: Rect[]): void {
+  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
     const config = ConfigManager.getInstance();
 
     // 폴리곤 정점 구성
     const leftVertices: Point[] = [];
     const rightVertices: Point[] = [];
 
-    for (let i = 0; i < rects.length; i++) {
-      const rect = rects[i];
+    for (let i = 0; i < anchorDrawInfo.sentenceRects.length; i++) {
+      const rect = anchorDrawInfo.sentenceRects[i];
 
       leftVertices.push(new Point(rect.left, rect.top));
       rightVertices.push(new Point(rect.right, rect.top));
@@ -21,8 +21,8 @@ export class MergedOutlineDrawer implements Drawer {
       leftVertices.push(new Point(rect.left, rect.bottom));
       rightVertices.push(new Point(rect.right, rect.bottom));
 
-      if (i + 1 < rects.length) {
-        const nextRect = rects[i + 1];
+      if (i + 1 < anchorDrawInfo.sentenceRects.length) {
+        const nextRect = anchorDrawInfo.sentenceRects[i + 1];
 
         // 충돌안하면 사각형 분리.
         if (rect.right < nextRect.left || rect.left > nextRect.right) {

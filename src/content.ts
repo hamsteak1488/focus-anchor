@@ -9,6 +9,7 @@ import { UnderlineDrawer } from "./draw/UnderlineDrawer";
 import { MergedOutlineDrawer } from "./draw/MergedOutlineDrawer";
 import { SpotlightDrawer } from "./draw/SpotlightDrawer";
 import { ConfigManager } from "./config/ConfigManager";
+import { AnchorDrawInfo } from "./AnchorDrawInfo";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -44,8 +45,10 @@ function deactivateFocus(): void {
 }
 
 function drawFocusAnchor(): void {
-  const rects = focusManager.getCurrentFocusRects();
-  if (rects.length == 0) return;
+  const sentenceRects = focusManager.getSentenceRects();
+  if (sentenceRects.length == 0) return;
+
+  const firstCharRect = focusManager.getFirstCharRect();
 
   renderer.clearCanvas();
 
@@ -56,7 +59,7 @@ function drawFocusAnchor(): void {
     return;
   }
 
-  drawer.draw(renderer, rects);
+  drawer.draw(renderer, new AnchorDrawInfo(sentenceRects, firstCharRect));
 }
 
 let drawScheduled = false;

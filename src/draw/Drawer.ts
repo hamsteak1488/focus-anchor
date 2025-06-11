@@ -1,6 +1,6 @@
-import { Rect } from "../Rect";
+import { AnchorDrawInfo } from "../AnchorDrawInfo";
 import { Renderer } from "../Renderer";
 
 export interface Drawer {
-  draw(renderer: Renderer, rects: Rect[]): void;
+  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void;
 }
