@@ -6,8 +6,4 @@ export class DropdownConfigItem<T> {
     this.selected = selected;
     this.options = options;
   }
-
-  select(item: T) {
-    this.selected = item;
-  }
 }

@@ -19,6 +19,6 @@ export class FixedUnderlineDrawer implements Drawer {
         anchorDrawInfo.sentenceRects[0].bottom + config.marginY
       )
     );
-    renderer.drawPolygon(polygonVertices, "red", config.lineWidth);
+    renderer.drawPolygon(polygonVertices, config.drawColor.selected, config.lineWidth);
   }
 }

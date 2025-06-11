@@ -20,9 +20,14 @@ export class OutlineDrawer implements Drawer {
 
     for (const marginAppliedRect of marginAppliedRects) {
       if (config.borderRadius > 0) {
-        renderer.drawRoundRect(marginAppliedRect, "red", config.lineWidth, config.borderRadius);
+        renderer.drawRoundRect(
+          marginAppliedRect,
+          config.drawColor.selected,
+          config.lineWidth,
+          config.borderRadius
+        );
       } else {
-        renderer.drawRect(marginAppliedRect, "red", config.lineWidth);
+        renderer.drawRect(marginAppliedRect, config.drawColor.selected, config.lineWidth);
       }
     }
   }

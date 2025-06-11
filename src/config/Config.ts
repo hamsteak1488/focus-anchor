@@ -1,4 +1,5 @@
 import { DrawStrategy } from "../draw/DrawStrategy.enum";
+import { ColorConfigItem } from "./ColorConfigItem";
 import { DropdownConfigItem } from "./DropdownConfigItem";
 
 export class Config {
@@ -10,7 +11,10 @@ export class Config {
     const config = Config.default;
     for (const key of Object.keys(object) as (keyof Config)[]) {
       if (config[key] instanceof DropdownConfigItem) {
-        (config[key] as DropdownConfigItem<any>).select(object[key].selected);
+        (config[key] as DropdownConfigItem<any>).selected = object[key].selected;
+      }
+      if (config[key] instanceof ColorConfigItem) {
+        (config[key] as ColorConfigItem).selected = object[key].selected;
       } else {
         (config as any)[key] = object[key];
       }
@@ -22,7 +26,10 @@ export class Config {
     const config: Config = this;
     for (const key of Object.keys(object) as (keyof Config)[]) {
       if (config[key] instanceof DropdownConfigItem) {
-        (config[key] as DropdownConfigItem<any>).select(object[key].selected);
+        (config[key] as DropdownConfigItem<any>).selected = object[key].selected;
+      }
+      if (config[key] instanceof ColorConfigItem) {
+        (config[key] as ColorConfigItem).selected = object[key].selected;
       } else {
         (config as any)[key] = object[key];
       }
@@ -43,6 +50,7 @@ export class Config {
       DrawStrategy.FirsrChar,
     ]
   );
+  drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? "#FF0000");
   lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
   borderRadius: number = parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0");
   fixedUnderlineLength: number = parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20");

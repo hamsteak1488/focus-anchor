@@ -1,3 +1,4 @@
+import { ColorConfigItem } from "./config/ColorConfigItem";
 import { Config } from "./config/Config";
 import { DropdownConfigItem } from "./config/DropdownConfigItem";
 
@@ -47,26 +48,8 @@ reloadButton.addEventListener("click", async () => {
   });
 });
 
-function save() {
-  const config = Config.default;
-
-  for (const key of Object.keys(config) as (keyof Config)[]) {
-    if (typeof config[key] === "number") {
-      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
-      (config as any)[key] = Number(input.value);
-    }
-    if (config[key] instanceof DropdownConfigItem) {
-      const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
-      const selectedOption = selectElement.options[selectElement.selectedIndex];
-      (config[key] as DropdownConfigItem<any>).select(selectedOption.value);
-    }
-  }
-
-  chrome.storage.local.set({ config: config });
-}
-
 function reset() {
-  setConfigElementsValue(Config.default);
+  loadConfigToElements(Config.default);
   chrome.storage.local.set({ config: Config.default });
 
   flash("✔ Reseted!");
@@ -77,7 +60,7 @@ chrome.storage.onChanged.addListener((change, area) => {
   if (area === "local" && change.config) {
     const config = Config.default;
     Object.assign(config, change.config.newValue);
-    setConfigElementsValue(config);
+    loadConfigToElements(config);
   }
 });
 
@@ -98,10 +81,10 @@ function loadStorageConfigs() {
   chrome.storage.local.get("config").then(({ config }) => {
     if (config) {
       const storageConfig = Config.from(config);
-      setConfigElementsValue(storageConfig);
+      loadConfigToElements(storageConfig);
     } else {
-      setConfigElementsValue(Config.default);
-      save();
+      loadConfigToElements(Config.default);
+      saveConfigFromElements();
     }
   });
 }
@@ -133,7 +116,7 @@ function createConfigElements(): void {
       input.style.maxWidth = "8ch";
       input.id = `config-${key}`;
       input.type = "number";
-      input.addEventListener("input", (e) => save());
+      input.addEventListener("input", (e) => saveConfigFromElements());
 
       wrapper.appendChild(input);
     }
@@ -142,7 +125,7 @@ function createConfigElements(): void {
       const select = document.createElement("select");
       select.className = "form-select w-auto";
       select.id = `config-${key}`;
-      select.addEventListener("change", (e) => save());
+      select.addEventListener("change", (e) => saveConfigFromElements());
 
       value.options.forEach((v) => {
         const option = document.createElement("option");
@@ -153,11 +136,22 @@ function createConfigElements(): void {
       wrapper.appendChild(select);
     }
 
+    if (value instanceof ColorConfigItem) {
+      const input = document.createElement("input");
+      input.className = "form-control";
+      input.style.width = "50px";
+      input.id = `config-${key}`;
+      input.type = "color";
+      input.addEventListener("input", (e) => saveConfigFromElements());
+
+      wrapper.appendChild(input);
+    }
+
     configContainer.appendChild(wrapper);
   }
 }
 
-function setConfigElementsValue(config: Config): void {
+function loadConfigToElements(config: Config): void {
   for (const key of Object.keys(config) as (keyof Config)[]) {
     const value = config[key];
 
@@ -173,5 +167,31 @@ function setConfigElementsValue(config: Config): void {
         }
       }
     }
+    if (value instanceof ColorConfigItem) {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      input.value = value.selected;
+    }
   }
+}
+
+function saveConfigFromElements() {
+  const config = Config.default;
+
+  for (const key of Object.keys(config) as (keyof Config)[]) {
+    if (typeof config[key] === "number") {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      (config as any)[key] = Number(input.value);
+    }
+    if (config[key] instanceof DropdownConfigItem) {
+      const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
+      const selectedOption = selectElement.options[selectElement.selectedIndex];
+      (config[key] as DropdownConfigItem<any>).selected = selectedOption.value;
+    }
+    if (config[key] instanceof ColorConfigItem) {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      (config[key] as ColorConfigItem).select(input.value);
+    }
+  }
+
+  chrome.storage.local.set({ config: config });
 }
