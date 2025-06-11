@@ -40,18 +40,18 @@ export class Renderer {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawRectangle(rect: Rect, color: string, lineWidth: number): void {
+  drawRect(rect: Rect, color: string, lineWidth: number): void {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = lineWidth;
     this.ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
   }
 
-  fillRectangle(rect: Rect, color: string): void {
+  fillRect(rect: Rect, color: string): void {
     this.ctx.fillStyle = color;
     this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
   }
 
-  clearRectangle(rect: Rect) {
+  clearRect(rect: Rect) {
     this.ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
   }
 
@@ -71,6 +71,6 @@ export class Renderer {
   }
 
   fillScreen(color: string): void {
-    this.fillRectangle(new Rect(0, 0, this.canvas.width, this.canvas.height), color);
+    this.fillRect(new Rect(0, 0, this.canvas.width, this.canvas.height), color);
   }
 }

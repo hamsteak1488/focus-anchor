@@ -21,7 +21,7 @@ export class SpotlightDrawer implements Drawer {
     }
 
     for (const marginAppliedRect of marginAppliedRects) {
-      renderer.clearRectangle(marginAppliedRect);
+      renderer.clearRect(marginAppliedRect);
     }
   }
 }

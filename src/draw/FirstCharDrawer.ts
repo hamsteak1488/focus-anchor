@@ -16,6 +16,6 @@ export class FirstCharDrawer implements Drawer {
     marginAppliedRect.width += config.marginX * 2;
     marginAppliedRect.height += config.marginY * 2;
 
-    renderer.drawRectangle(marginAppliedRect, "red", config.lineWidth);
+    renderer.drawRect(marginAppliedRect, "red", config.lineWidth);
   }
 }

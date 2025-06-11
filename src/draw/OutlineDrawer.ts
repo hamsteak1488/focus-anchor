@@ -19,7 +19,7 @@ export class OutlineDrawer implements Drawer {
     }
 
     for (const marginAppliedRect of marginAppliedRects) {
-      renderer.drawRectangle(marginAppliedRect, "red", config.lineWidth);
+      renderer.drawRect(marginAppliedRect, "red", config.lineWidth);
     }
   }
 }
