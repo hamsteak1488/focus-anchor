@@ -55,11 +55,6 @@ function save() {
       const input = document.getElementById(`config-${key}`) as HTMLInputElement;
       (config as any)[key] = Number(input.value);
     }
-    if (typeof config[key] === "boolean") {
-      const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
-      const selectedOption = selectElement.options[selectElement.selectedIndex];
-      (config as any)[key] = selectedOption.value === "true";
-    }
     if (config[key] instanceof DropdownConfigItem) {
       const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
       const selectedOption = selectElement.options[selectElement.selectedIndex];
@@ -142,21 +137,6 @@ function createConfigElements(): void {
 
       wrapper.appendChild(input);
     }
-    if (typeof value == "boolean") {
-      const select = document.createElement("select");
-      select.id = `config-${key}`;
-      select.className = "form-select w-auto";
-      select.addEventListener("change", (e) => save());
-
-      ["true", "false"].forEach((v) => {
-        const option = document.createElement("option");
-        option.value = v;
-        option.textContent = v;
-        select.appendChild(option);
-      });
-
-      wrapper.appendChild(select);
-    }
 
     if (value instanceof DropdownConfigItem) {
       const select = document.createElement("select");
@@ -184,14 +164,6 @@ function setConfigElementsValue(config: Config): void {
     if (typeof value === "number") {
       const input = document.getElementById(`config-${key}`) as HTMLInputElement;
       input.value = String(value);
-    }
-    if (typeof value === "boolean") {
-      const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;
-      for (const option of selectElement.options) {
-        if (option.value === String(value)) {
-          option.selected = true;
-        }
-      }
     }
     if (value instanceof DropdownConfigItem) {
       const selectElement = document.getElementById(`config-${key}`) as HTMLSelectElement;

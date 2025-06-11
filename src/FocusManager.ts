@@ -403,7 +403,7 @@ export class FocusManager {
     const res = this.findFocusInfoFromClickInfo(pNode, clickedPoint);
     if (res) return res;
 
-    if (this.config.strictClickDetection) return null;
+    if (this.config.strictClickDetection.selected == "true") return null;
 
     // 만약 정확한 앵커를 찾지 못했다면, 근접한 앵커 정보라도 반환.
     for (let pNodeIdx = clickedNodeIdx; pNodeIdx < this.nodeList.length; pNodeIdx++) {
@@ -597,7 +597,7 @@ export class FocusManager {
   }
 
   scrollToFocusedAnchor(): void {
-    if (!this.config.autoScroll) return;
+    if (this.config.autoScroll.selected != "true") return;
 
     const focusedAnchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
 

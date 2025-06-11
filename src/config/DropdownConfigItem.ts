@@ -1,11 +1,9 @@
 export class DropdownConfigItem<T> {
-  defaultValue: T;
   selected: T;
   options: T[];
 
-  constructor(defaultValue: T, options: T[]) {
-    this.defaultValue = defaultValue;
-    this.selected = defaultValue;
+  constructor(selected: T, options: T[]) {
+    this.selected = selected;
     this.options = options;
   }
 
