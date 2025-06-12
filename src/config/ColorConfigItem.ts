@@ -4,8 +4,4 @@ export class ColorConfigItem {
   constructor(selected: string) {
     this.selected = selected;
   }
-
-  select(color: string) {
-    this.selected = color;
-  }
 }

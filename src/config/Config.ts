@@ -11,13 +11,15 @@ export class Config {
     const config = Config.default;
     for (const key of Object.keys(object) as (keyof Config)[]) {
       if (config[key] instanceof DropdownConfigItem) {
-        (config[key] as DropdownConfigItem<any>).selected = object[key].selected;
+        config[key].selected = object[key].selected;
+        continue;
       }
       if (config[key] instanceof ColorConfigItem) {
-        (config[key] as ColorConfigItem).selected = object[key].selected;
-      } else {
-        (config as any)[key] = object[key];
+        config[key].selected = object[key].selected;
+        continue;
       }
+
+      config[key] = object[key];
     }
     return config;
   }
@@ -26,13 +28,15 @@ export class Config {
     const config: Config = this;
     for (const key of Object.keys(object) as (keyof Config)[]) {
       if (config[key] instanceof DropdownConfigItem) {
-        (config[key] as DropdownConfigItem<any>).selected = object[key].selected;
+        config[key].selected = object[key].selected;
+        continue;
       }
       if (config[key] instanceof ColorConfigItem) {
-        (config[key] as ColorConfigItem).selected = object[key].selected;
-      } else {
-        (config as any)[key] = object[key];
+        config[key].selected = object[key].selected;
+        continue;
       }
+
+      config[key] = object[key];
     }
   }
 
