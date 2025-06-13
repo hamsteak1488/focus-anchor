@@ -24,7 +24,7 @@ export class OutlineDrawer implements Drawer {
           marginAppliedRect,
           config.drawColor.selected,
           config.lineWidth,
-          config.borderRadius
+          (marginAppliedRect.height * (config.borderRadius / 100)) / 2
         );
       } else {
         renderer.drawRect(marginAppliedRect, config.drawColor.selected, config.lineWidth);

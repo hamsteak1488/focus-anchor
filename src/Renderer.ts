@@ -48,6 +48,7 @@ export class Renderer {
 
   drawRoundRect(rect: Rect, color: string, lineWidth: number, radius: number): void {
     this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = lineWidth;
     this.ctx.beginPath();
     this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
     this.ctx.stroke();
