@@ -504,10 +504,15 @@ export class FocusManager {
     let scrollParent = node.parentElement;
     while (scrollParent) {
       if (this.isScrollable(scrollParent)) break;
+      /*
+        포커스 노드의 스크롤 부모를 찾기 전에 fixed 속성을 가진 노드를 만났다면
+        스크롤 부모의 스크롤을 이동해도 포커스 노드의 위치는 변하지 않으므로 스크롤 취소.
+      */
+      if (getComputedStyle(scrollParent).position == "fixed") return;
       scrollParent = scrollParent.parentElement;
     }
 
-    if (!scrollParent || scrollParent === document.body) {
+    if (scrollParent === document.body || !scrollParent) {
       scrollParent = document.scrollingElement as HTMLElement;
     }
 
@@ -553,9 +558,15 @@ export class FocusManager {
   }
 
   private scrollRecursively(element: HTMLElement, extraOffset: number): void {
+    // 스크롤 컨테이너의 position이 fixed라면 스크롤 부모의 스크롤을 움직여도 위치가 변하지 않음.
+    if (getComputedStyle(element).position == "fixed") {
+      return;
+    }
+
     let scrollParent = element.parentElement;
     while (scrollParent) {
       if (this.isScrollable(scrollParent)) break;
+      if (getComputedStyle(scrollParent).position == "fixed") return;
       scrollParent = scrollParent.parentElement;
     }
 
