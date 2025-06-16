@@ -516,8 +516,10 @@ export class FocusManager {
       scrollParent = document.scrollingElement as HTMLElement;
     }
 
+    const viewportHeight = window.innerHeight;
+
     // 노드가 최종적으로 위치해야 할 뷰포트 내 타겟 Y좌표.
-    const targetY = document.documentElement.clientHeight * bias;
+    const targetY = viewportHeight * bias;
     const distFromAnchorToTargetY = anchorRect.top - targetY;
 
     const maxScrollTop = scrollParent.scrollHeight - scrollParent.clientHeight;
@@ -525,7 +527,7 @@ export class FocusManager {
       scrollParent === document.scrollingElement ? 0 : scrollParent.getBoundingClientRect().top;
     const scrollParentBottom =
       scrollParent === document.scrollingElement
-        ? document.documentElement.clientHeight
+        ? viewportHeight
         : scrollParent.getBoundingClientRect().bottom;
 
     // 최대로 증가가능한 스크롤 양 계산.
