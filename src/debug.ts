@@ -21,7 +21,12 @@ const cleanup = createGlobalJsdom(html, {
   storage: {
     local: {
       get: (_keys: string | string[] | { [key: string]: any }, callback: (items: any) => void) => {
-        callback({ focusActive: true });
+        const result = { focusActive: true };
+        if (typeof callback === "function") {
+          callback(result);
+        } else {
+          return Promise.resolve(result);
+        }
       },
       set: (_items: any, callback?: () => void) => {
         callback?.();
@@ -33,6 +38,9 @@ const cleanup = createGlobalJsdom(html, {
         callback?.();
       },
     },
+    onChanged: {
+      addListener: (_listner: Function) => {},
+    },
   },
 };
 
@@ -43,7 +51,7 @@ const cleanup = createGlobalJsdom(html, {
     console.log("[debug] content.ts imported");
 
     // 4) 여기서 load 이벤트를 강제로 날리기
-    window.dispatchEvent(new window.Event("load"));
+    window.document.dispatchEvent(new window.Event("DOMContentLoaded"));
     console.log("[debug] window.load dispatched");
   } catch (err) {
     console.error(err);
@@ -52,6 +60,6 @@ const cleanup = createGlobalJsdom(html, {
     setTimeout(() => {
       cleanup();
       console.log("[debug] jsdom cleaned up");
-    }, 10000);
+    }, 10_000);
   }
 })();

@@ -16,10 +16,13 @@ export class FocusManager {
   private ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
   private delimiters: Delimeter[] = [
     new Delimeter(". ", 1),
-    new Delimeter("? ", 1),
-    new Delimeter("! ", 1),
     new Delimeter(".\n", 1),
     new Delimeter(". ", 0),
+    new Delimeter("? ", 1),
+    new Delimeter("?\n", 1),
+    new Delimeter("! ", 1),
+    new Delimeter("!\n", 1),
+    new Delimeter("\n\n", 1),
   ];
 
   private focusInfo = new FocusInfo(0, 0);
@@ -90,7 +93,10 @@ export class FocusManager {
     this.focusInfo.anchorIdx = 0;
 
     // for (const nodeIdx of this.anchorMap.keys()) {
-    //   console.debug(`nodeList[${nodeIdx}]: anchorIndices=${this.anchorMap.get(nodeIdx)!}`);
+    //   console.debug(`nodeList[${nodeIdx}]`);
+    //   for (const anchor of this.anchorMap.get(nodeIdx)!) {
+    //     console.debug(`anchor=${anchor}`);
+    //   }
     // }
     // console.debug(`nodeList.length=${this.nodeList.length}`);
   }
