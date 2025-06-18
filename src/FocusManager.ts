@@ -1,11 +1,12 @@
 import { Anchor } from "./Anchor";
 import { ConfigManager } from "./config/ConfigManager";
-import { Delimeter } from "./Delimeter";
+import { SimpleDelimitPattern } from "./SimpleDelimitPattern";
 import { FocusInfo } from "./FocusInfo";
 import { Fragment } from "./Fragment";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 import { Stack } from "./Stack";
+import { DelimitPattern } from "./DelimitPattern";
 
 export class FocusManager {
   private nodeList: Node[] = [];
@@ -26,15 +27,30 @@ export class FocusManager {
     /^u$/i,
   ];
   private ignoreSplitTagList: RegExp[] = [/^script$/i, /^#comment$/i, /^mjx-container$/i];
-  private delimiters: Delimeter[] = [
-    new Delimeter(/\. /, 1),
-    new Delimeter(/\.\n/, 1),
-    new Delimeter(/\. /, 1),
-    new Delimeter(/\? /, 1),
-    new Delimeter(/\?\n/, 1),
-    new Delimeter(/! /, 1),
-    new Delimeter(/!\n/, 1),
-    new Delimeter(/\n\n/, 1),
+  private delimitPatterns: DelimitPattern[] = [
+    new DelimitPattern((str) => {
+      const regexp = /\. /g;
+
+      let execResult = regexp.exec(str);
+      if (execResult == null) {
+        return false;
+      }
+      const lastIndex = regexp.lastIndex;
+
+      execResult = regexp.exec(str);
+      if (execResult == null && /^[0-9]+\. /.test(str.substring(0, lastIndex))) {
+        return false;
+      }
+
+      return true;
+    }, 1),
+    new SimpleDelimitPattern(/\.\n/, 1),
+    new SimpleDelimitPattern(/\. /, 1),
+    new SimpleDelimitPattern(/\? /, 1),
+    new SimpleDelimitPattern(/\?\n/, 1),
+    new SimpleDelimitPattern(/! /, 1),
+    new SimpleDelimitPattern(/!\n/, 1),
+    new SimpleDelimitPattern(/\n\n/, 1),
   ];
 
   private focusInfo = new FocusInfo(0, 0);
@@ -181,11 +197,11 @@ export class FocusManager {
       let needSplit = false;
 
       // 구분자를 통해 이어붙인 조각들이 문장으로 분리되어야 하는지 검사.
-      for (const delimeter of this.delimiters) {
-        let matchSucceed = delimeter.regexp.test(stringBuffer);
+      for (const delimitPattern of this.delimitPatterns) {
+        let matchSucceed = delimitPattern.test(stringBuffer);
 
         if (matchSucceed) {
-          let popCount = delimeter.exclusionCountFromEnd;
+          let popCount = delimitPattern.exclusionCountFromEnd;
           while (popCount--) {
             fragmentBuffer.pop();
           }
