@@ -1,9 +1,9 @@
 export class Delimeter {
-  token: string;
-  exclusiveStartIdx: number;
+  regexp: RegExp;
+  exclusionCountFromEnd: number;
 
-  constructor(token: string, exclusiveStartIdx: number) {
-    this.token = token;
-    this.exclusiveStartIdx = exclusiveStartIdx;
+  constructor(regexp: RegExp, exclusiveStartIdx: number) {
+    this.regexp = regexp;
+    this.exclusionCountFromEnd = exclusiveStartIdx;
   }
 }

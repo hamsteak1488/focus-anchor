@@ -12,17 +12,29 @@ export class FocusManager {
   private nodeIdxMap = new Map<Node, number>();
   private anchorMap = new Map<number, Anchor[]>();
 
-  private nonSplitTagList: string[] = ["A", "B", "CODE", "EM", "S", "SPAN", "STRONG", "SUP", "U"];
-  private ignoreSplitTagList: string[] = ["SCRIPT", "#comment", "MJX-CONTAINER"];
+  private nonSplitTagList: RegExp[] = [
+    /^a$/i,
+    /^b$/i,
+    /^code$/i,
+    /^em$/i,
+    /^i$/i,
+    /^s$/i,
+    /^span$/i,
+    /^strong$/i,
+    /^sup$/i,
+    /^sub$/i,
+    /^u$/i,
+  ];
+  private ignoreSplitTagList: RegExp[] = [/^script$/i, /^#comment$/i, /^mjx-container$/i];
   private delimiters: Delimeter[] = [
-    new Delimeter(". ", 1),
-    new Delimeter(".\n", 1),
-    new Delimeter(". ", 0),
-    new Delimeter("? ", 1),
-    new Delimeter("?\n", 1),
-    new Delimeter("! ", 1),
-    new Delimeter("!\n", 1),
-    new Delimeter("\n\n", 1),
+    new Delimeter(/\. /, 1),
+    new Delimeter(/\.\n/, 1),
+    new Delimeter(/\. /, 1),
+    new Delimeter(/\? /, 1),
+    new Delimeter(/\?\n/, 1),
+    new Delimeter(/! /, 1),
+    new Delimeter(/!\n/, 1),
+    new Delimeter(/\n\n/, 1),
   ];
 
   private focusInfo = new FocusInfo(0, 0);
@@ -108,7 +120,7 @@ export class FocusManager {
         this.maxZIndex = Math.max(this.maxZIndex, zIndex);
       }
     }
-    if (this.ignoreSplitTagList.includes(node.nodeName)) return;
+    if (this.ignoreSplitTagList.some((regexp) => regexp.test(node.nodeName))) return;
 
     this.nodeList.push(node);
     this.nodeIdxMap.set(node, this.nodeList.length - 1);
@@ -125,7 +137,11 @@ export class FocusManager {
     }
 
     // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
-    if (!this.nonSplitTagList.includes(node.nodeName)) {
+    if (
+      !this.nonSplitTagList.some((regexp) => {
+        return regexp.test(node.nodeName);
+      })
+    ) {
       fragmentListStack.push([]);
     }
 
@@ -135,15 +151,15 @@ export class FocusManager {
       // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
       if (
         child.nodeType != Node.TEXT_NODE &&
-        !this.nonSplitTagList.includes(child.nodeName) &&
-        !this.ignoreSplitTagList.includes(child.nodeName)
+        !this.nonSplitTagList.some((regexp) => regexp.test(child.nodeName)) &&
+        !this.ignoreSplitTagList.some((regexp) => regexp.test(child.nodeName))
       ) {
         fragmentListStack.peek().push(new Fragment("", child, -1));
       }
     });
 
     // 비분리 태그라면 상위 노드에서 해석해야하므로 반환.
-    if (this.nonSplitTagList.includes(node.nodeName)) {
+    if (this.nonSplitTagList.some((regexp) => regexp.test(node.nodeName))) {
       return;
     }
 
@@ -166,21 +182,10 @@ export class FocusManager {
 
       // 구분자를 통해 이어붙인 조각들이 문장으로 분리되어야 하는지 검사.
       for (const delimeter of this.delimiters) {
-        if (delimeter.token.length > fragmentBuffer.length) continue;
-
-        let matchSucceed = true;
-        for (let i = 0; i < delimeter.token.length; i++) {
-          if (
-            delimeter.token[i] !=
-            fragmentBuffer[fragmentBuffer.length - delimeter.token.length + i].ch
-          ) {
-            matchSucceed = false;
-            break;
-          }
-        }
+        let matchSucceed = delimeter.regexp.test(stringBuffer);
 
         if (matchSucceed) {
-          let popCount = delimeter.token.length - delimeter.exclusiveStartIdx;
+          let popCount = delimeter.exclusionCountFromEnd;
           while (popCount--) {
             fragmentBuffer.pop();
           }
@@ -399,7 +404,7 @@ export class FocusManager {
 
   private getFocusInfoFromClickInfo(clickedNodeIdx: number, clickedPoint: Point): FocusInfo | null {
     let pNode: Node | null = this.nodeList[clickedNodeIdx];
-    while (pNode && this.nonSplitTagList.includes(pNode.nodeName)) {
+    while (pNode && this.nonSplitTagList.some((regexp) => regexp.test(pNode!.nodeName))) {
       pNode = pNode.parentNode;
     }
     if (!pNode) {
