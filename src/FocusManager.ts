@@ -16,7 +16,6 @@ export class FocusManager {
   private nonSplitTagList: RegExp[] = [
     /^a$/i,
     /^b$/i,
-    /^code$/i,
     /^em$/i,
     /^i$/i,
     /^s$/i,
@@ -26,7 +25,12 @@ export class FocusManager {
     /^sub$/i,
     /^u$/i,
   ];
-  private ignoreSplitTagList: RegExp[] = [/^script$/i, /^#comment$/i, /^mjx-container$/i];
+  private ignoreSplitTagList: RegExp[] = [
+    /^script$/i,
+    /^#comment$/i,
+    /^mjx-container$/i,
+    /^code$/i,
+  ];
   private delimitPatterns: DelimitPattern[] = [
     new DelimitPattern((str) => {
       const regexp = /\. /g;
@@ -136,7 +140,9 @@ export class FocusManager {
         this.maxZIndex = Math.max(this.maxZIndex, zIndex);
       }
     }
-    if (this.ignoreSplitTagList.some((regexp) => regexp.test(node.nodeName))) return;
+    if (this.ignoreSplitTagList.some((regexp) => regexp.test(node.nodeName))) {
+      return;
+    }
 
     this.nodeList.push(node);
     this.nodeIdxMap.set(node, this.nodeList.length - 1);
