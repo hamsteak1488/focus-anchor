@@ -17,6 +17,7 @@ export class FocusManager {
     /^a$/i,
     /^b$/i,
     /^em$/i,
+    /^font$/i,
     /^i$/i,
     /^s$/i,
     /^span$/i,
