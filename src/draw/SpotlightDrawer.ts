@@ -8,8 +8,6 @@ export class SpotlightDrawer implements Drawer {
   draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
     const config = ConfigManager.getInstance();
 
-    renderer.fillScreen("rgba(0, 0, 0, 0.5)");
-
     const marginAppliedRects: Rect[] = [];
     for (const rect of anchorDrawInfo.sentenceRects) {
       const marginAppliedRect = Rect.from(rect);
@@ -20,8 +18,17 @@ export class SpotlightDrawer implements Drawer {
       marginAppliedRects.push(marginAppliedRect);
     }
 
-    for (const marginAppliedRect of marginAppliedRects) {
-      renderer.clearRect(marginAppliedRect);
+    if (config.borderRadius > 0) {
+      renderer.fillOutsideRoundRects(
+        marginAppliedRects,
+        "rgba(0, 0, 0, 0.5)",
+        (marginAppliedRects[0].height * (config.borderRadius / 100)) / 2
+      );
+    } else {
+      renderer.fillScreen("rgba(0, 0, 0, 0.5)");
+      for (const marginAppliedRect of marginAppliedRects) {
+        renderer.clearRect(marginAppliedRect);
+      }
     }
   }
 }

@@ -67,6 +67,23 @@ export class Renderer {
     this.ctx.stroke();
   }
 
+  fillOutsideRoundRects(rects: Rect[], color: string, radius: number): void {
+    this.ctx.fillStyle = color;
+    this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+    this.ctx.save();
+    this.ctx.globalCompositeOperation = "destination-out";
+    this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
+
+    for (const rect of rects) {
+      this.ctx.beginPath();
+      this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
+      this.ctx.fill();
+    }
+
+    this.ctx.restore();
+  }
+
   clearRect(rect: Rect) {
     this.ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
   }
