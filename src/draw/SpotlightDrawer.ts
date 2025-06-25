@@ -22,7 +22,9 @@ export class SpotlightDrawer implements Drawer {
       renderer.fillOutsideRoundRects(
         marginAppliedRects,
         "rgba(0, 0, 0, 0.5)",
-        (marginAppliedRects[0].height * (config.borderRadius / 100)) / 2
+        (Math.min(marginAppliedRects[0].width, marginAppliedRects[0].height) *
+          (config.borderRadius / 100)) /
+          2
       );
     } else {
       renderer.fillScreen("rgba(0, 0, 0, 0.5)");

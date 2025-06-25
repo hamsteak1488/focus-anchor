@@ -16,6 +16,17 @@ export class FirstCharDrawer implements Drawer {
     marginAppliedRect.width += config.marginX * 2;
     marginAppliedRect.height += config.marginY * 2;
 
-    renderer.drawRect(marginAppliedRect, config.drawColor.selected, config.lineWidth);
+    if (config.borderRadius > 0) {
+      renderer.drawRoundRect(
+        marginAppliedRect,
+        config.drawColor.selected,
+        config.lineWidth,
+        (Math.min(marginAppliedRect.width, marginAppliedRect.height) *
+          (config.borderRadius / 100)) /
+          2
+      );
+    } else {
+      renderer.drawRect(marginAppliedRect, config.drawColor.selected, config.lineWidth);
+    }
   }
 }
