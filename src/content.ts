@@ -11,6 +11,7 @@ import { SpotlightDrawer } from "./draw/SpotlightDrawer";
 import { ConfigManager } from "./config/ConfigManager";
 import { AnchorDrawInfo } from "./AnchorDrawInfo";
 import { FirstCharDrawer } from "./draw/FirstCharDrawer";
+import { HighlighterDrawer } from "./draw/HighlighterDrawer";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -22,6 +23,7 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.MergedOutline, new MergedOutlineDrawer()],
   [DrawStrategy.Spotlight, new SpotlightDrawer()],
   [DrawStrategy.FirsrChar, new FirstCharDrawer()],
+  [DrawStrategy.Highlighter, new HighlighterDrawer()],
 ]);
 
 let focusActive = false;

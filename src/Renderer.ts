@@ -64,7 +64,6 @@ export class Renderer {
     this.ctx.beginPath();
     this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
     this.ctx.fill();
-    this.ctx.stroke();
   }
 
   fillOutsideRoundRects(rects: Rect[], color: string, radius: number): void {
