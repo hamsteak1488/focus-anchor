@@ -645,6 +645,7 @@ export class FocusManager {
 
   scrollToFocusedAnchor(): void {
     if (this.config.autoScroll.selected != "true") return;
+    if (this.focusInfo.nodeIdx == -1) return;
 
     const focusedAnchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
 
