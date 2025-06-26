@@ -1,7 +1,7 @@
 {
   "name": "Focus Anchor",
   "description": "Software to anchor focus.",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "manifest_version": 3,
   "icons": {
     "48": "images/icon-48.png",

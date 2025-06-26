@@ -49,6 +49,7 @@ export class FocusManager {
 
       return true;
     }, 1),
+    new SimpleDelimitPattern(/。/, 0),
     new SimpleDelimitPattern(/\.\n/, 1),
     new SimpleDelimitPattern(/\. /, 1),
     new SimpleDelimitPattern(/\? /, 1),
