@@ -15,6 +15,7 @@ export class FocusManager {
   private nonSplitTagList: RegExp[] = [
     /^a$/i,
     /^b$/i,
+    /^code$/i,
     /^em$/i,
     /^font$/i,
     /^i$/i,
@@ -26,7 +27,7 @@ export class FocusManager {
     /^sub$/i,
     /^u$/i,
   ];
-  private ignoreTagList: RegExp[] = [/^script$/i, /^#comment$/i, /^code$/i];
+  private ignoreTagList: RegExp[] = [/^script$/i, /^#comment$/i];
   private ignoreClassList: RegExp[] = [/^mjx/i, /^MathJax/i];
   private delimitPatterns: DelimitPattern[] = [
     new DelimitPattern((str) => {
@@ -58,8 +59,10 @@ export class FocusManager {
   private focusInfo = new FocusInfo(0, 0);
   private config = ConfigManager.getInstance();
 
-  private floorMergeTestRange = 10;
-  private minRectArea = 100;
+  private readonly floorMergeTestRange = 10;
+  private readonly minRectArea = 100;
+
+  private readonly maxTextContentLength: number = 10_000;
 
   public maxZIndex = 9999;
 
@@ -170,7 +173,7 @@ export class FocusManager {
 
     // 텍스트 노드로부터 텍스트 조각 획득.
     const trimmedContent = node.textContent?.trim();
-    if (trimmedContent) {
+    if (trimmedContent && trimmedContent.length <= this.maxTextContentLength) {
       for (let i = 0; i < node.textContent!.length; i++) {
         fragmentList.push(new Fragment(node.textContent![i], node, i));
       }
