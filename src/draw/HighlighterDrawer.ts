@@ -1,4 +1,4 @@
-import Color from "color";
+import { colord } from "colord";
 import { AnchorDrawInfo } from "../AnchorDrawInfo";
 import { ConfigManager } from "../config/ConfigManager";
 import { Rect } from "../Rect";
@@ -19,7 +19,7 @@ export class HighlighterDrawer implements Drawer {
       marginAppliedRects.push(marginAppliedRect);
     }
 
-    const highlighterColor = Color(config.drawColor.selected).alpha(0.2).rgb().toString();
+    const highlighterColor = colord(config.drawColor.selected).alpha(0.2).toRgbString();
 
     for (const marginAppliedRect of marginAppliedRects) {
       if (config.borderRadius > 0) {
