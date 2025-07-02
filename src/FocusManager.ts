@@ -5,7 +5,6 @@ import { FocusInfo } from "./FocusInfo";
 import { Fragment } from "./Fragment";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
-import { Stack } from "./Stack";
 import { DelimitPattern } from "./DelimitPattern";
 
 export class FocusManager {
@@ -26,12 +25,8 @@ export class FocusManager {
     /^sub$/i,
     /^u$/i,
   ];
-  private ignoreSplitTagList: RegExp[] = [
-    /^script$/i,
-    /^#comment$/i,
-    /^mjx-container$/i,
-    /^code$/i,
-  ];
+  private ignoreTagList: RegExp[] = [/^script$/i, /^#comment$/i, /^code$/i];
+  private ignoreClassList: RegExp[] = [/^mjx/i, /^MathJax/i];
   private delimitPatterns: DelimitPattern[] = [
     new DelimitPattern((str) => {
       const regexp = /\. /g;
@@ -72,7 +67,7 @@ export class FocusManager {
     this.nodeIdxMap.clear();
     this.anchorMap.clear();
 
-    this.traversalPreOrder(document.body, new Stack<Fragment[]>());
+    this.traverseAndExtract(document.body, []);
 
     for (let i = 0; i < this.nodeList.length; i++) {
       this.nodeIdxMap.set(this.nodeList[i], i);
@@ -135,64 +130,98 @@ export class FocusManager {
     // console.debug(`nodeList.length=${this.nodeList.length}`);
   }
 
-  private traversalPreOrder(node: Node, fragmentListStack: Stack<Fragment[]>): void {
-    if (node instanceof Element) {
-      const zIndex = parseInt(getComputedStyle(node).zIndex);
-      if (zIndex) {
-        this.maxZIndex = Math.max(this.maxZIndex, zIndex);
+  private hasMatchingClass(element: Element, regexpList: RegExp[]): boolean {
+    for (const regexp of regexpList) {
+      let matched = false;
+      element.classList.forEach((clazz) => {
+        matched = matched || regexp.test(clazz);
+      });
+      if (matched) {
+        return true;
       }
     }
-    if (this.ignoreSplitTagList.some((regexp) => regexp.test(node.nodeName))) {
-      return;
+    return false;
+  }
+
+  private shouldSplitOnNode(node: Node): boolean {
+    return this.nonSplitTagList.some((regexp) => regexp.test(node.nodeName));
+  }
+
+  private shouldIgnoreNode(node: Node): boolean {
+    if (this.ignoreTagList.some((regexp) => regexp.test(node.nodeName))) {
+      return true;
     }
+    if (node instanceof Element && this.hasMatchingClass(node, this.ignoreClassList)) {
+      return true;
+    }
+    return false;
+  }
 
-    this.nodeList.push(node);
-    this.nodeIdxMap.set(node, this.nodeList.length - 1);
+  private updateMaxZIfElementZHigher(element: Element) {
+    const zIndex = parseInt(getComputedStyle(element).zIndex);
+    if (zIndex) {
+      this.maxZIndex = Math.max(this.maxZIndex, zIndex);
+    }
+  }
 
-    // 탐색 대상이 텍스트 노드라면, 텍스트조각으로 분리해서 스택 최상단에 삽입.
-    if (node.nodeType == Node.TEXT_NODE) {
-      const trimmedContent = node.textContent?.trim();
-      if (trimmedContent) {
-        for (let i = 0; i < node.textContent!.length; i++) {
-          fragmentListStack.peek().push(new Fragment(node.textContent![i], node, i));
-        }
+  private extractTextFromNode(node: Node, fragmentList: Fragment[]) {
+    // 텍스트 노드로부터 텍스트 조각 획득.
+    const trimmedContent = node.textContent?.trim();
+    if (trimmedContent) {
+      for (let i = 0; i < node.textContent!.length; i++) {
+        fragmentList.push(new Fragment(node.textContent![i], node, i));
       }
-      return;
     }
+    return;
+  }
 
-    // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
-    if (
-      !this.nonSplitTagList.some((regexp) => {
-        return regexp.test(node.nodeName);
-      })
-    ) {
-      fragmentListStack.push([]);
-    }
+  private traverseAndExtract(element: Element, fragmentList: Fragment[]): void {
+    element.childNodes.forEach((child) => {
+      if (child instanceof Element) {
+        this.updateMaxZIfElementZHigher(child);
+      }
 
-    node.childNodes.forEach((child) => {
-      this.traversalPreOrder(child, fragmentListStack);
+      if (this.shouldIgnoreNode(child)) {
+        return;
+      }
 
-      // 만약 비분리 태그가 아니라면 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
-      if (
-        child.nodeType != Node.TEXT_NODE &&
-        !this.nonSplitTagList.some((regexp) => regexp.test(child.nodeName)) &&
-        !this.ignoreSplitTagList.some((regexp) => regexp.test(child.nodeName))
-      ) {
-        fragmentListStack.peek().push(new Fragment("", child, -1));
+      this.nodeList.push(child);
+      this.nodeIdxMap.set(child, this.nodeList.length - 1);
+
+      // 탐색 대상이 텍스트 노드라면, 텍스트 조각으로 획득해서 스택 최상단에 삽입.
+      if (child.nodeType == Node.TEXT_NODE) {
+        this.extractTextFromNode(child, fragmentList);
+        return;
+      }
+
+      if (!(child instanceof Element)) {
+        console.debug(`element ${element.nodeName} is not instance of element`);
+        return;
+      }
+
+      // 비분리 태그가 아니라면 상위 노드와 분리가 필요하므로 스택에 새 리스트 추가.
+      if (this.shouldSplitOnNode(child)) {
+        this.traverseAndExtract(child, fragmentList);
+      } else {
+        this.traverseAndExtract(child, []);
+      }
+
+      // 만약 비분리 태그가 아닐 경우 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
+      if (!this.shouldSplitOnNode(child)) {
+        fragmentList.push(new Fragment("", child, -1));
       }
     });
 
     // 비분리 태그라면 상위 노드에서 해석해야하므로 반환.
-    if (this.nonSplitTagList.some((regexp) => regexp.test(node.nodeName))) {
+    if (this.shouldSplitOnNode(element)) {
       return;
     }
 
     // 스택 최상단의 조각들을 이어붙여 해석.
-    let fragmentList = fragmentListStack.pop();
-    this.extractAnchorsFromFragments(fragmentList);
+    this.extractAnchorFromFragments(fragmentList);
   }
 
-  private extractAnchorsFromFragments(fragmentList: Fragment[]) {
+  private extractAnchorFromFragments(fragmentList: Fragment[]) {
     let fragmentBuffer: Fragment[] = [];
     let stringBuffer = "";
 
