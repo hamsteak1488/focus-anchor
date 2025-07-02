@@ -78,18 +78,7 @@ export class FocusManager {
       this.anchorMap.set(
         node,
         anchors.filter((anchor) => {
-          const node = this.nodeList[anchor.startNodeIdx];
-          const parentElement = node.parentElement!;
-          const style = getComputedStyle(parentElement);
-          if (
-            style.display === "none" ||
-            style.visibility === "hidden" ||
-            parseFloat(style.opacity) === 0 ||
-            parseFloat(style.width) * parseFloat(style.height) < this.minRectArea ||
-            parentElement.hasAttribute("hidden") ||
-            parentElement.getAttribute("aria-hidden") === "true" ||
-            this.getRectsAreaOfAnchor(anchor) < this.minRectArea
-          ) {
+          if (this.getRectsAreaOfAnchor(anchor) < this.minRectArea) {
             return false;
           }
           return true;
@@ -165,6 +154,19 @@ export class FocusManager {
   }
 
   private extractTextFromNode(node: Node, fragmentList: Fragment[]) {
+    const parentElement = node.parentElement!;
+    const style = getComputedStyle(parentElement);
+    if (
+      style.display === "none" ||
+      style.visibility === "hidden" ||
+      parseFloat(style.opacity) === 0 ||
+      parseFloat(style.width) * parseFloat(style.height) < this.minRectArea ||
+      parentElement.hasAttribute("hidden") ||
+      parentElement.getAttribute("aria-hidden") === "true"
+    ) {
+      return;
+    }
+
     // 텍스트 노드로부터 텍스트 조각 획득.
     const trimmedContent = node.textContent?.trim();
     if (trimmedContent) {
