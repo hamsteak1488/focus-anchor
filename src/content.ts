@@ -119,8 +119,26 @@ document.addEventListener("mouseup", function (e) {
   focusManager.scrollToFocusedAnchor();
 });
 
+function isFocusedOnEditableNode(): boolean {
+  switch (document.activeElement?.nodeName) {
+    case "input":
+    case "textarea":
+      return true;
+  }
+  if (
+    document.activeElement &&
+    document.activeElement instanceof HTMLElement &&
+    document.activeElement.isContentEditable
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 document.addEventListener("keydown", function (e) {
   if (!focusActive) return;
+  if (isFocusedOnEditableNode()) return;
 
   let moveDir = 0;
 
