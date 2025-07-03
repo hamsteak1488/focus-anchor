@@ -139,9 +139,6 @@ function isFocusedOnEditableNode(): boolean {
 function isHotkeyMatch(event: KeyboardEvent, hotkey: string): boolean {
   const parts = hotkey.split("+").map((p) => p.trim());
   let key = parts.pop(); // The last part is the key
-  if (key) {
-    key = key.toUpperCase();
-  }
 
   const modifiers = {
     control: parts.includes("Control"),
@@ -151,10 +148,12 @@ function isHotkeyMatch(event: KeyboardEvent, hotkey: string): boolean {
   };
 
   let eventKey = event.key;
+  if (eventKey.length === 1 && eventKey.match(/[a-zA-Z]/)) {
+    eventKey = eventKey.toUpperCase();
+  }
   if (eventKey === " ") {
     eventKey = "Space";
   }
-  eventKey = eventKey.toUpperCase();
 
   return (
     eventKey === key &&
@@ -194,22 +193,14 @@ document.addEventListener("keydown", function (e) {
 
   let moveDir = 0;
 
-  switch (e.key) {
-    case "ArrowUp":
-      moveDir = -1;
-      break;
-    case "ArrowDown":
-      moveDir = 1;
-      break;
-    case "ArrowLeft":
-      moveDir = -1;
-      break;
-    case "ArrowRight":
-      moveDir = 1;
-      break;
-    default:
-      return;
+  if (isHotkeyMatch(e, config.movePrevHotkey)) {
+    moveDir = -1;
   }
+  if (isHotkeyMatch(e, config.moveNextHotkey)) {
+    moveDir = 1;
+  }
+
+  if (moveDir == 0) return;
 
   e.preventDefault();
 

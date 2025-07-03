@@ -76,4 +76,6 @@ export class Config {
 
   focusYBias: number = parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "20");
   toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? "Control+Shift+F";
+  movePrevHotkey: string = process.env.DEFAULT_MOVE_PREV_HOTKEY ?? "ArrowLeft";
+  moveNextHotkey: string = process.env.DEFAULT_MOVE_NEXT_HOTKEY ?? "ArrowRight";
 }
