@@ -7,6 +7,7 @@ module.exports = {
   entry: {
     main: [path.resolve(__dirname, "src", "main.ts"), path.resolve(__dirname, "scss", "main.scss")],
     content: path.resolve(__dirname, "src", "content.ts"),
+    background: path.resolve(__dirname, "src", "background.ts"),
   },
   output: {
     path: path.resolve(__dirname, "dist"),

@@ -136,9 +136,61 @@ function isFocusedOnEditableNode(): boolean {
   return false;
 }
 
+function isHotkeyMatch(event: KeyboardEvent, hotkey: string): boolean {
+  const parts = hotkey.split("+").map((p) => p.trim());
+  let key = parts.pop(); // The last part is the key
+  if (key) {
+    key = key.toUpperCase();
+  }
+
+  const modifiers = {
+    control: parts.includes("Control"),
+    shift: parts.includes("Shift"),
+    alt: parts.includes("Alt"),
+    meta: parts.includes("Meta"), // Command key on Mac
+  };
+
+  let eventKey = event.key;
+  if (eventKey === " ") {
+    eventKey = "Space";
+  }
+  eventKey = eventKey.toUpperCase();
+
+  return (
+    eventKey === key &&
+    event.ctrlKey === modifiers.control &&
+    event.shiftKey === modifiers.shift &&
+    event.altKey === modifiers.alt &&
+    event.metaKey === modifiers.meta
+  );
+}
+
+function toggleFocus(): void {
+  focusActive = !focusActive;
+
+  if (focusActive) {
+    document.documentElement.classList.add("focus-anchor__active");
+    activateFocus();
+  } else {
+    document.documentElement.classList.remove("focus-anchor__active");
+    deactivateFocus();
+  }
+}
+
+function sendToggleFocus(): void {
+  chrome.runtime.sendMessage({ type: "request-toggle-focus" });
+}
+
 document.addEventListener("keydown", function (e) {
-  if (!focusActive) return;
   if (isFocusedOnEditableNode()) return;
+
+  if (isHotkeyMatch(e, config.toggleHotkey)) {
+    e.preventDefault();
+    sendToggleFocus();
+    return;
+  }
+
+  if (!focusActive) return;
 
   let moveDir = 0;
 
@@ -174,15 +226,7 @@ document.addEventListener("keydown", function (e) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "toggle-focus") {
-    focusActive = !focusActive;
-
-    if (focusActive) {
-      document.documentElement.classList.add("focus-anchor__active");
-      activateFocus();
-    } else {
-      document.documentElement.classList.remove("focus-anchor__active");
-      deactivateFocus();
-    }
+    toggleFocus();
     sendResponse({ isActive: focusActive });
   }
   if (msg.type === "get-focus-state") {
@@ -205,3 +249,12 @@ chrome.storage.onChanged.addListener((change, area) => {
     }
   }
 });
+
+function loadStorageConfigs() {
+  chrome.storage.local.get("config").then(({ config: storedConfig }) => {
+    if (storedConfig) {
+      config.assignProperties(storedConfig);
+    }
+  });
+}
+loadStorageConfigs();

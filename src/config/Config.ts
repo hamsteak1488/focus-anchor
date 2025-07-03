@@ -19,7 +19,7 @@ export class Config {
         continue;
       }
 
-      config[key] = object[key];
+      (config as any)[key] = object[key];
     }
     return config;
   }
@@ -36,7 +36,7 @@ export class Config {
         continue;
       }
 
-      config[key] = object[key];
+      (config as any)[key] = object[key];
     }
   }
 
@@ -75,4 +75,5 @@ export class Config {
   );
 
   focusYBias: number = parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "20");
+  toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? "Control+Shift+F";
 }
