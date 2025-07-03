@@ -22,7 +22,7 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.Outline, new OutlineDrawer()],
   [DrawStrategy.MergedOutline, new MergedOutlineDrawer()],
   [DrawStrategy.Spotlight, new SpotlightDrawer()],
-  [DrawStrategy.FirsrChar, new FirstCharDrawer()],
+  [DrawStrategy.FirstChar, new FirstCharDrawer()],
   [DrawStrategy.Highlighter, new HighlighterDrawer()],
 ]);
 

@@ -51,7 +51,7 @@ export class Config {
       DrawStrategy.Outline,
       DrawStrategy.MergedOutline,
       DrawStrategy.Spotlight,
-      DrawStrategy.FirsrChar,
+      DrawStrategy.FirstChar,
       DrawStrategy.Highlighter,
     ]
   );
