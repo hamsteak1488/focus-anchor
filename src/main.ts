@@ -4,12 +4,16 @@ import { DropdownConfigItem } from "./config/DropdownConfigItem";
 
 const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
-const configContainer = document.getElementById("config-container")!;
 const resetButton = document.getElementById("reset") as HTMLButtonElement;
 const state = document.getElementById("state") as HTMLElement;
 
 function updateIndicator(color: string) {
   focusToggleButton.style.backgroundColor = color;
+  if (color === "chartreuse") {
+    focusToggleButton.style.color = "#333"; // Darker text for light background
+  } else {
+    focusToggleButton.style.color = "white"; // White text for dark background
+  }
 }
 
 function flash(text: string, error = false): void {
@@ -71,8 +75,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateIndicator(resp.isActive ? "chartreuse" : "darkorange");
   });
 
-  createConfigElements();
   loadStorageConfigs();
+
+  const config = Config.default;
+  for (const key of Object.keys(config) as (keyof Config)[]) {
+    if (typeof config[key] === "number") {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      input.addEventListener("input", () => saveConfigFromElements());
+    }
+    if (config[key] instanceof DropdownConfigItem) {
+      const select = document.getElementById(`config-${key}`) as HTMLSelectElement;
+      select.addEventListener("change", () => saveConfigFromElements());
+    }
+    if (config[key] instanceof ColorConfigItem) {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      input.addEventListener("input", () => saveConfigFromElements());
+    }
+    if (key === "toggleHotkey") {
+      const input = document.getElementById(`config-${key}`) as HTMLInputElement;
+      input.addEventListener("input", () => saveConfigFromElements());
+    }
+  }
 });
 
 function loadStorageConfigs() {
@@ -85,66 +108,6 @@ function loadStorageConfigs() {
       saveConfigFromElements();
     }
   });
-}
-
-function createConfigElements(): void {
-  const config = Config.default;
-
-  for (const key of Object.keys(config) as (keyof Config)[]) {
-    const wrapper = document.createElement("div");
-    Object.assign(wrapper.style, {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      backgroundColor: "rgba(0, 0, 0, 0.1)",
-      "border-radius": "5px 20px 5px 20px",
-      padding: "10px",
-    });
-
-    const label = document.createElement("label");
-    label.className = "form-label mb-0";
-    label.textContent = key;
-    wrapper.appendChild(label);
-
-    if (typeof config[key] == "number") {
-      const input = document.createElement("input");
-      input.className = "form-control";
-      input.style.maxWidth = "8ch";
-      input.id = `config-${key}`;
-      input.type = "number";
-      input.addEventListener("input", (e) => saveConfigFromElements());
-
-      wrapper.appendChild(input);
-    }
-
-    if (config[key] instanceof DropdownConfigItem) {
-      const select = document.createElement("select");
-      select.className = "form-select w-auto";
-      select.id = `config-${key}`;
-      select.addEventListener("change", (e) => saveConfigFromElements());
-
-      config[key].options.forEach((v) => {
-        const option = document.createElement("option");
-        option.value = v;
-        option.textContent = v;
-        select.appendChild(option);
-      });
-      wrapper.appendChild(select);
-    }
-
-    if (config[key] instanceof ColorConfigItem) {
-      const input = document.createElement("input");
-      input.className = "form-control";
-      input.style.width = "50px";
-      input.id = `config-${key}`;
-      input.type = "color";
-      input.addEventListener("input", (e) => saveConfigFromElements());
-
-      wrapper.appendChild(input);
-    }
-
-    configContainer.appendChild(wrapper);
-  }
 }
 
 function loadConfigToElements(config: Config): void {
