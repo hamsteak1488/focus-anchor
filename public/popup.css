@@ -1,0 +1,77 @@
+body {
+  background-color: #f0f2f5; /* Softer, modern background */
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Modern font stack */
+}
+#control-container {
+  display: flex;
+  gap: 8px; /* Slightly increased gap */
+  margin-bottom: 20px; /* More space below control buttons */
+}
+
+#control-container button {
+  display: flex;
+  align-items: center;
+  height: 36px; /* Slightly taller buttons */
+  width: fit-content;
+  padding: 0 15px; /* Add horizontal padding */
+  border-radius: 6px; /* Slightly rounded buttons */
+}
+
+#control-container img {
+  height: 24px; /* Reduced size for the reload icon */
+  width: 24px; /* Ensure it's square */
+}
+
+#config-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* Increased gap between config items */
+  background-color: #ffffff; /* White background */
+}
+
+.config-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 10px;
+  background-color: #e7e7e7;
+  border-radius: 5px 20px 5px 20px;
+}
+
+.form-label {
+  font-weight: 500; /* Medium bold */
+  color: #495057; /* Slightly softer dark text */
+  font-size: 0.95em; /* Slightly smaller label font */
+}
+
+summary {
+  font-size: 1.4em; /* Larger summary font */
+  font-weight: 600; /* Bolder summary */
+  margin-bottom: 15px; /* More space below summary */
+  color: #000000; /* Primary blue for summary */
+  cursor: pointer; /* Indicate it's clickable */
+}
+
+.form-control,
+.form-select {
+  border-radius: 5px; /* Slightly rounded input fields */
+  border-color: #ced4da; /* Standard border color */
+}
+
+.form-control:focus,
+.form-select:focus {
+  box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25); /* Bootstrap-like focus glow */
+  border-color: #80bdff; /* Blue border on focus */
+}
+
+#reset {
+  margin-top: 15px; /* More space above reset button */
+  width: 50%;
+  border-radius: 6px; /* Rounded button */
+}
+
+#state {
+  margin-top: 10px;
+  text-align: center;
+  font-weight: 500;
+}

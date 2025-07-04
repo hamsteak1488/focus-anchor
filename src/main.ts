@@ -111,7 +111,7 @@ function updateIndicator(color: string) {
   if (color === "chartreuse") {
     focusToggleButton.style.color = "#333";
   } else {
-    focusToggleButton.style.color = "white";
+    focusToggleButton.style.color = "#333";
   }
 }
 

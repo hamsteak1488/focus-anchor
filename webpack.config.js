@@ -5,7 +5,7 @@ const Dotenv = require("dotenv-webpack");
 
 module.exports = {
   entry: {
-    main: [path.resolve(__dirname, "src", "main.ts"), path.resolve(__dirname, "scss", "main.scss")],
+    main: path.resolve(__dirname, "src", "main.ts"),
     content: path.resolve(__dirname, "src", "content.ts"),
     background: path.resolve(__dirname, "src", "background.ts"),
   },
