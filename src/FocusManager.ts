@@ -392,9 +392,9 @@ export class FocusManager {
     const rects = this.getRectsFromAnchor(anchor);
 
     if (rects.length == 0) {
-      console.debug(
-        "getFloorSeperatedRectsFromAnchor: Failed to get rects from getRectsFromAnchor"
-      );
+      // console.debug(
+      //   "getFloorSeperatedRectsFromAnchor: Failed to get rects from getRectsFromAnchor"
+      // );
       return [];
     }
 
