@@ -54,6 +54,7 @@ export class Config {
       DrawStrategy.FirstCharOutline,
       DrawStrategy.Highlighter,
       DrawStrategy.FirstCharHighlighter,
+      DrawStrategy.Bracket,
     ]
   );
   drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? "#FF0000");

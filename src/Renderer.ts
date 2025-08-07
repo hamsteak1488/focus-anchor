@@ -40,6 +40,30 @@ export class Renderer {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
+  drawLine(from: Point, to: Point, color: string, lineWidth: number): void {
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = lineWidth;
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(from.x, from.y);
+    this.ctx.lineTo(to.x, to.y);
+    this.ctx.stroke();
+  }
+
+  drawLines(vertices: Point[], color: string, lineWidth: number): void {
+    if (vertices.length == 0) return;
+
+    this.ctx.strokeStyle = color;
+    this.ctx.lineWidth = lineWidth;
+
+    this.ctx.beginPath();
+    this.ctx.moveTo(vertices[0].x, vertices[0].y);
+    for (let i = 1; i < vertices.length; i++) {
+      this.ctx.lineTo(vertices[i].x, vertices[i].y);
+    }
+    this.ctx.stroke();
+  }
+
   drawRect(rect: Rect, color: string, lineWidth: number): void {
     this.ctx.strokeStyle = color;
     this.ctx.lineWidth = lineWidth;

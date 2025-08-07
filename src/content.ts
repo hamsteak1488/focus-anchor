@@ -13,6 +13,7 @@ import { AnchorDrawInfo } from "./AnchorDrawInfo";
 import { FirstCharOutlineDrawer } from "./draw/FirstCharOutlineDrawer";
 import { HighlighterDrawer } from "./draw/HighlighterDrawer";
 import { FirstCharHighlighterDrawer } from "./draw/FirstCharHighlighterDrawer";
+import { BracketDrawer } from "./draw/BracketDrawer";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -26,6 +27,7 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.FirstCharOutline, new FirstCharOutlineDrawer()],
   [DrawStrategy.Highlighter, new HighlighterDrawer()],
   [DrawStrategy.FirstCharHighlighter, new FirstCharHighlighterDrawer()],
+  [DrawStrategy.Bracket, new BracketDrawer()],
 ]);
 
 let focusActive = false;

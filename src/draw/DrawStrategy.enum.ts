@@ -7,4 +7,5 @@ export enum DrawStrategy {
   FirstCharOutline = "FirstCharOutline",
   Highlighter = "Highlighter",
   FirstCharHighlighter = "FirstCharHighlighter",
+  Bracket = "Bracket",
 }
