@@ -4,7 +4,7 @@ import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
 
-export class FirstCharDrawer implements Drawer {
+export class FirstCharOutlineDrawer implements Drawer {
   draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
     const config = ConfigManager.getInstance();
 

@@ -10,8 +10,9 @@ import { MergedOutlineDrawer } from "./draw/MergedOutlineDrawer";
 import { SpotlightDrawer } from "./draw/SpotlightDrawer";
 import { ConfigManager } from "./config/ConfigManager";
 import { AnchorDrawInfo } from "./AnchorDrawInfo";
-import { FirstCharDrawer } from "./draw/FirstCharDrawer";
+import { FirstCharOutlineDrawer } from "./draw/FirstCharOutlineDrawer";
 import { HighlighterDrawer } from "./draw/HighlighterDrawer";
+import { FirstCharHighlighterDrawer } from "./draw/FirstCharHighlighterDrawer";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -22,8 +23,9 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.Outline, new OutlineDrawer()],
   [DrawStrategy.MergedOutline, new MergedOutlineDrawer()],
   [DrawStrategy.Spotlight, new SpotlightDrawer()],
-  [DrawStrategy.FirstChar, new FirstCharDrawer()],
+  [DrawStrategy.FirstCharOutline, new FirstCharOutlineDrawer()],
   [DrawStrategy.Highlighter, new HighlighterDrawer()],
+  [DrawStrategy.FirstCharHighlighter, new FirstCharHighlighterDrawer()],
 ]);
 
 let focusActive = false;

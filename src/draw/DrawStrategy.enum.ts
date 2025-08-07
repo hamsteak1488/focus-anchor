@@ -4,6 +4,7 @@ export enum DrawStrategy {
   Outline = "Outline",
   MergedOutline = "MergedOutline",
   Spotlight = "Spotlight",
-  FirstChar = "FirstChar",
+  FirstCharOutline = "FirstCharOutline",
   Highlighter = "Highlighter",
+  FirstCharHighlighter = "FirstCharHighlighter",
 }

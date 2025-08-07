@@ -11,7 +11,6 @@
       integrity="sha384-4Q6Gf2aSP4eDXB8Miphtr37CMZZQ5oXLH2yaXMJ2w8e2ZtHTl7GptT4jmndRuHDT"
       crossorigin="anonymous"
     />
-    
   </head>
   <body>
     <div style="margin: 1.5em; width: 380px">
@@ -56,12 +55,13 @@
             <label class="form-label mb-0">Highlight Style</label>
             <select class="form-select w-auto" id="config-drawStrategy">
               <option value="Underline" selected>Underline</option>
-              <option value="FixedUnderline">FixedUnderline</option>
+              <option value="FixedUnderline">Fixed Underline</option>
               <option value="Outline">Outline</option>
-              <option value="MergedOutline">MergedOutline</option>
+              <option value="FirstCharOutline">First Character Outline</option>
+              <option value="MergedOutline">Merged Outline</option>
               <option value="Spotlight">Spotlight</option>
-              <option value="FirstChar">FirstChar</option>
               <option value="Highlighter">Highlighter</option>
+              <option value="FirstCharHighlighter">First Character Highlighter</option>
             </select>
           </div>
 
@@ -170,7 +170,9 @@
                 readonly
                 style="flex-grow: 1"
               />
-              <button id="set-move-prev-hotkey" class="btn btn-outline-secondary btn-sm">Set</button>
+              <button id="set-move-prev-hotkey" class="btn btn-outline-secondary btn-sm">
+                Set
+              </button>
             </div>
           </div>
 
@@ -185,7 +187,9 @@
                 readonly
                 style="flex-grow: 1"
               />
-              <button id="set-move-next-hotkey" class="btn btn-outline-secondary btn-sm">Set</button>
+              <button id="set-move-next-hotkey" class="btn btn-outline-secondary btn-sm">
+                Set
+              </button>
             </div>
           </div>
         </div>
