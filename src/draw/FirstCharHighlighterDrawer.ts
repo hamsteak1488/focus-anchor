@@ -28,7 +28,7 @@ export class FirstCharHighlighterDrawer implements Drawer {
           2
       );
     } else {
-      renderer.fillRect(marginAppliedRect, config.drawColor.selected);
+      renderer.fillRect(marginAppliedRect, highlighterColor);
     }
   }
 }
