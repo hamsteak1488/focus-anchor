@@ -1,6 +1,13 @@
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 
+export enum ToastOption {
+  TOP = "top",
+  MIDDLE = "middle",
+  BOTTOM = "bottom",
+  DISABLED = "disabled",
+}
+
 export class Renderer {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
@@ -128,5 +135,55 @@ export class Renderer {
 
   fillScreen(color: string): void {
     this.fillRect(new Rect(0, 0, this.canvas.width, this.canvas.height), color);
+  }
+
+  showToast(
+    message: string,
+    duration: number = 3000,
+    toastOption: ToastOption = ToastOption.BOTTOM,
+    color: string = "rgba(0, 0, 0, 0.7)"
+  ): void {
+    if (toastOption === ToastOption.DISABLED) {
+      return;
+    }
+
+    const toast = document.createElement("div");
+    toast.textContent = message;
+    toast.style.position = "fixed";
+    toast.style.left = "50%";
+    toast.style.transform = "translateX(-50%)";
+    toast.style.backgroundColor = color;
+    toast.style.color = "white";
+    toast.style.padding = "10px 20px";
+    toast.style.borderRadius = "5px";
+    toast.style.zIndex = "999999";
+    toast.style.opacity = "0";
+    toast.style.transition = "opacity 0.5s";
+
+    switch (toastOption) {
+      case ToastOption.TOP:
+        toast.style.top = "10%";
+        break;
+      case ToastOption.MIDDLE:
+        toast.style.top = "50%";
+        toast.style.transform = "translate(-50%, -50%)";
+        break;
+      case ToastOption.BOTTOM:
+        toast.style.bottom = "10%";
+        break;
+    }
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "1";
+    }, 100);
+
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      setTimeout(() => {
+        document.body.removeChild(toast);
+      }, 500);
+    }, duration);
   }
 }

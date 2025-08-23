@@ -47,9 +47,16 @@ function init(): void {
 
 function activateFocus(): void {
   init();
+  renderer.showToast("Focus activated", 1000, config.toastOption.selected, "rgba(0, 128, 0, 0.5)");
 }
 function deactivateFocus(): void {
   renderer.clearCanvas();
+  renderer.showToast(
+    "Focus deactivated",
+    1000,
+    config.toastOption.selected,
+    "rgba(196, 64, 0, 0.5)"
+  );
 }
 
 function drawFocusAnchor(): void {

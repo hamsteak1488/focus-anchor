@@ -1,4 +1,5 @@
 import { DrawStrategy } from "../draw/DrawStrategy.enum";
+import { ToastOption } from "../Renderer";
 import { ColorConfigItem } from "./ColorConfigItem";
 import { DropdownConfigItem } from "./DropdownConfigItem";
 
@@ -80,4 +81,9 @@ export class Config {
   toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? "Control+Shift+F";
   movePrevHotkey: string = process.env.DEFAULT_MOVE_PREV_HOTKEY ?? "ArrowLeft";
   moveNextHotkey: string = process.env.DEFAULT_MOVE_NEXT_HOTKEY ?? "ArrowRight";
+
+  toastOption = new DropdownConfigItem<ToastOption>(
+    (process.env.DEFAULT_TOAST_OPTION as ToastOption) ?? ToastOption.BOTTOM,
+    [ToastOption.TOP, ToastOption.MIDDLE, ToastOption.BOTTOM, ToastOption.DISABLED]
+  );
 }
