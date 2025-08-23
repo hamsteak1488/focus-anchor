@@ -208,6 +208,7 @@ document.addEventListener("keydown", function (e) {
 
   e.preventDefault();
 
+  // 만약 도착한 앵커에 렌더링할 사각형이 존재하지 않는다면 현재 위치가 유효한 지점이 아니라고 판단하고 다시 이동.
   const movedOnce = focusManager.moveFocus(moveDir);
   if (!movedOnce) return;
   while (!focusManager.existsAnchorRects()) {
