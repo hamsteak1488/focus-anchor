@@ -15,7 +15,6 @@ export class FocusManager {
   private nonSplitTagList: RegExp[] = [
     /^a$/i,
     /^b$/i,
-    /^code$/i,
     /^em$/i,
     /^font$/i,
     /^i$/i,
@@ -27,7 +26,7 @@ export class FocusManager {
     /^sub$/i,
     /^u$/i,
   ];
-  private ignoreTagList: RegExp[] = [/^script$/i, /^#comment$/i];
+  private ignoreTagList: RegExp[] = [/^script$/i, /^code$/i, /^#comment$/i];
   private ignoreClassList: RegExp[] = [/^mjx/i, /^MathJax/i];
   private delimitPatterns: DelimitPattern[] = [
     new DelimitPattern((str) => {
