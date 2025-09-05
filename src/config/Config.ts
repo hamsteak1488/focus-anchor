@@ -59,6 +59,7 @@ export class Config {
     ]
   );
   drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? "#FF0000");
+  opacity: number = parseInt(process.env.DEFAULT_OPACITY ?? "100");
   lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
   borderRadius: number = parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0");
   fixedUnderlineLength: number = parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20");
