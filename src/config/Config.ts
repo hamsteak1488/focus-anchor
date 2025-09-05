@@ -11,29 +11,27 @@ export class Config {
 
   static from(object: any): Config {
     const config = Config.default;
-    for (const key of Object.keys(object) as (keyof Config)[]) {
-      if (config[key] instanceof NumberConfigItem) {
-        config[key].value = object[key].value;
-        continue;
-      }
-      if (config[key] instanceof DropdownConfigItem) {
-        config[key].selected = object[key].selected;
-        continue;
-      }
-      if (config[key] instanceof ColorConfigItem) {
-        config[key].selected = object[key].selected;
-        continue;
-      }
-
-      (config as any)[key] = object[key];
-    }
+    Config.assignProperties(config, object);
     return config;
   }
 
-  assignProperties(object: any): void {
-    const config: Config = this;
+  static assignProperties(config: Config, object: any): void {
     for (const key of Object.keys(object) as (keyof Config)[]) {
       if (config[key] instanceof NumberConfigItem) {
+        /*
+          1.4.0에서 Config 코드 리팩토링된 버전으로 업데이트할 때 기존 설정값을 불러올 수 있도록 로직 추가.
+          확장프로그램을 비활성화 해두거나 혹은 설정창을 계속 열지 않는다면 main.ts의 저장 로직으로 가지 못할 수 있으므로 최소 세 번의 업데이트 후에 삭제해야할 듯 함.
+        */
+        if (object[key].value === undefined && object[key] != undefined) {
+          const oldNumberValue = object[key];
+          delete object[key];
+          object[key] = new NumberConfigItem(
+            oldNumberValue,
+            config[key].minValue,
+            config[key].maxValue
+          );
+        }
+
         config[key].value = object[key].value;
         continue;
       }

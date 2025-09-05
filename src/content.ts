@@ -15,6 +15,7 @@ import { HighlighterDrawer } from "./draw/HighlighterDrawer";
 import { FirstCharHighlighterDrawer } from "./draw/FirstCharHighlighterDrawer";
 import { BracketDrawer } from "./draw/BracketDrawer";
 import { DrawOption } from "./draw/DrawOption";
+import { Config } from "./config/Config";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -37,7 +38,7 @@ const config = ConfigManager.getInstance();
 function init(): void {
   chrome.storage.local.get("config").then(({ config: loadedConfig }) => {
     if (loadedConfig) {
-      config.assignProperties(loadedConfig);
+      Config.assignProperties(config, loadedConfig);
     }
   });
 
@@ -137,8 +138,6 @@ document.addEventListener("mouseup", function (e) {
 
   registerDrawSchedule();
   focusManager.scrollToFocusedAnchor();
-
-  console.debug(`config.focusYBias.value=${config.focusYBias.value}`);
 });
 
 function isFocusedOnEditableNode(): boolean {
@@ -256,7 +255,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "local" && change.config) {
-    config.assignProperties(change.config.newValue);
+    Config.assignProperties(config, change.config.newValue);
     if (focusActive) {
       registerDrawSchedule();
       focusManager.scrollToFocusedAnchor();
@@ -267,7 +266,7 @@ chrome.storage.onChanged.addListener((change, area) => {
 function loadStorageConfigs() {
   chrome.storage.local.get("config").then(({ config: storedConfig }) => {
     if (storedConfig) {
-      config.assignProperties(storedConfig);
+      Config.assignProperties(config, storedConfig);
     }
   });
 }
