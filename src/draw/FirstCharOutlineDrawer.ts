@@ -3,30 +3,20 @@ import { ConfigManager } from "../config/ConfigManager";
 import { Rect } from "../Rect";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
+import { DrawOption } from "./DrawOption";
 
 export class FirstCharOutlineDrawer implements Drawer {
-  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
+  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {
     const config = ConfigManager.getInstance();
 
     if (!anchorDrawInfo.firstCharRect) return;
     const marginAppliedRect = Rect.from(anchorDrawInfo.firstCharRect);
 
-    marginAppliedRect.x -= config.marginX;
-    marginAppliedRect.y -= config.marginY;
-    marginAppliedRect.width += config.marginX * 2;
-    marginAppliedRect.height += config.marginY * 2;
+    marginAppliedRect.x -= config.paddingX;
+    marginAppliedRect.y -= config.paddingY;
+    marginAppliedRect.width += config.paddingX * 2;
+    marginAppliedRect.height += config.paddingY * 2;
 
-    if (config.borderRadius > 0) {
-      renderer.drawRoundRect(
-        marginAppliedRect,
-        config.drawColor.selected,
-        config.lineWidth,
-        (Math.min(marginAppliedRect.width, marginAppliedRect.height) *
-          (config.borderRadius / 100)) /
-          2
-      );
-    } else {
-      renderer.drawRect(marginAppliedRect, config.drawColor.selected, config.lineWidth);
-    }
+    renderer.drawRect(marginAppliedRect, drawOption);
   }
 }

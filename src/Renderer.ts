@@ -1,3 +1,4 @@
+import { DrawOption } from "./draw/DrawOption";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
 
@@ -47,9 +48,9 @@ export class Renderer {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  drawLine(from: Point, to: Point, color: string, lineWidth: number): void {
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
+  drawLine(from: Point, to: Point, drawOption: DrawOption): void {
+    this.ctx.strokeStyle = drawOption.rgba;
+    this.ctx.lineWidth = drawOption.lineWidth;
 
     this.ctx.beginPath();
     this.ctx.moveTo(from.x, from.y);
@@ -57,11 +58,11 @@ export class Renderer {
     this.ctx.stroke();
   }
 
-  drawLines(vertices: Point[], color: string, lineWidth: number): void {
+  drawLines(vertices: Point[], drawOption: DrawOption): void {
     if (vertices.length == 0) return;
 
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
+    this.ctx.strokeStyle = drawOption.rgba;
+    this.ctx.lineWidth = drawOption.lineWidth;
 
     this.ctx.beginPath();
     this.ctx.moveTo(vertices[0].x, vertices[0].y);
@@ -71,34 +72,27 @@ export class Renderer {
     this.ctx.stroke();
   }
 
-  drawRect(rect: Rect, color: string, lineWidth: number): void {
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
-    this.ctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-  }
+  drawRect(rect: Rect, drawOption: DrawOption): void {
+    const radius = (Math.min(rect.width, rect.height) * (drawOption.radiusRatio / 100)) / 2;
 
-  drawRoundRect(rect: Rect, color: string, lineWidth: number, radius: number): void {
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
+    this.ctx.strokeStyle = drawOption.rgba;
+    this.ctx.lineWidth = drawOption.lineWidth;
     this.ctx.beginPath();
     this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
     this.ctx.stroke();
   }
 
-  fillRect(rect: Rect, color: string): void {
-    this.ctx.fillStyle = color;
-    this.ctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-  }
+  fillRect(rect: Rect, drawOption: DrawOption): void {
+    const radius = (Math.min(rect.width, rect.height) * (drawOption.radiusRatio / 100)) / 2;
 
-  fillRoundRect(rect: Rect, color: string, radius: number): void {
-    this.ctx.fillStyle = color;
+    this.ctx.fillStyle = drawOption.rgba;
     this.ctx.beginPath();
     this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
     this.ctx.fill();
   }
 
-  fillOutsideRoundRects(rects: Rect[], color: string, radius: number): void {
-    this.ctx.fillStyle = color;
+  fillOutsideOfRects(rects: Rect[], drawOption: DrawOption): void {
+    this.ctx.fillStyle = drawOption.rgba;
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
@@ -106,6 +100,8 @@ export class Renderer {
     this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
 
     for (const rect of rects) {
+      const radius = (Math.min(rect.width, rect.height) * (drawOption.radiusRatio / 100)) / 2;
+
       this.ctx.beginPath();
       this.ctx.roundRect(rect.x, rect.y, rect.width, rect.height, radius);
       this.ctx.fill();
@@ -118,11 +114,11 @@ export class Renderer {
     this.ctx.clearRect(rect.x, rect.y, rect.width, rect.height);
   }
 
-  drawPolygon(vertices: Point[], color: string, lineWidth: number): void {
+  drawPolygon(vertices: Point[], drawOption: DrawOption): void {
     if (vertices.length == 0) return;
 
-    this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = lineWidth;
+    this.ctx.strokeStyle = drawOption.rgba;
+    this.ctx.lineWidth = drawOption.lineWidth;
 
     this.ctx.beginPath();
     this.ctx.moveTo(vertices[vertices.length - 1].x, vertices[vertices.length - 1].y);
@@ -133,8 +129,8 @@ export class Renderer {
     this.ctx.stroke();
   }
 
-  fillScreen(color: string): void {
-    this.fillRect(new Rect(0, 0, this.canvas.width, this.canvas.height), color);
+  fillScreen(drawOption: DrawOption): void {
+    this.fillRect(new Rect(0, 0, this.canvas.width, this.canvas.height), drawOption);
   }
 
   showToast(

@@ -3,9 +3,10 @@ import { ConfigManager } from "../config/ConfigManager";
 import { Point } from "../Point";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
+import { DrawOption } from "./DrawOption";
 
 export class MergedOutlineDrawer implements Drawer {
-  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
+  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {
     const config = ConfigManager.getInstance();
 
     // 폴리곤 정점 구성
@@ -26,15 +27,15 @@ export class MergedOutlineDrawer implements Drawer {
 
         // 충돌안하면 사각형 분리.
         if (rect.right < nextRect.left || rect.left > nextRect.right) {
-          leftVertices[0].y -= config.marginY;
-          leftVertices[leftVertices.length - 1].y += config.marginY;
-          rightVertices[0].y -= config.marginY;
-          rightVertices[rightVertices.length - 1].y += config.marginY;
+          leftVertices[0].y -= config.paddingY;
+          leftVertices[leftVertices.length - 1].y += config.paddingY;
+          rightVertices[0].y -= config.paddingY;
+          rightVertices[rightVertices.length - 1].y += config.paddingY;
           for (const v of leftVertices) {
-            v.x -= config.marginX;
+            v.x -= config.paddingX;
           }
           for (const v of rightVertices) {
-            v.x += config.marginX;
+            v.x += config.paddingX;
           }
 
           const polygonVertices: Point[] = [];
@@ -46,7 +47,7 @@ export class MergedOutlineDrawer implements Drawer {
             polygonVertices.push(leftVertices[i]);
           }
 
-          renderer.drawPolygon(polygonVertices, config.drawColor.selected, config.lineWidth);
+          renderer.drawPolygon(polygonVertices, drawOption);
 
           leftVertices.splice(0, leftVertices.length);
           rightVertices.splice(0, rightVertices.length);
@@ -63,15 +64,15 @@ export class MergedOutlineDrawer implements Drawer {
       }
     }
 
-    leftVertices[0].y -= config.marginY;
-    leftVertices[leftVertices.length - 1].y += config.marginY;
-    rightVertices[0].y -= config.marginY;
-    rightVertices[rightVertices.length - 1].y += config.marginY;
+    leftVertices[0].y -= config.paddingY;
+    leftVertices[leftVertices.length - 1].y += config.paddingY;
+    rightVertices[0].y -= config.paddingY;
+    rightVertices[rightVertices.length - 1].y += config.paddingY;
     for (const v of leftVertices) {
-      v.x -= config.marginX;
+      v.x -= config.paddingX;
     }
     for (const v of rightVertices) {
-      v.x += config.marginX;
+      v.x += config.paddingX;
     }
 
     const polygonVertices: Point[] = [];
@@ -81,6 +82,6 @@ export class MergedOutlineDrawer implements Drawer {
     for (let i = leftVertices.length - 1; i >= 0; i--) {
       polygonVertices.push(leftVertices[i]);
     }
-    renderer.drawPolygon(polygonVertices, config.drawColor.selected, config.lineWidth);
+    renderer.drawPolygon(polygonVertices, drawOption);
   }
 }

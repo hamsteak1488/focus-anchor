@@ -41,8 +41,8 @@ export class Config {
     }
   }
 
-  marginX: number = parseInt(process.env.DEFAULT_MARGIN_X ?? "1");
-  marginY: number = parseInt(process.env.DEFAULT_MARGIN_Y ?? "2");
+  paddingX: number = parseInt(process.env.DEFAULT_PADDING_X ?? "1");
+  paddingY: number = parseInt(process.env.DEFAULT_PADDING_Y ?? "2");
 
   drawStrategy = new DropdownConfigItem<DrawStrategy>(
     DrawStrategy[(process.env.DEFAULT_DRAW_STRATEGY as keyof typeof DrawStrategy) ?? "Underline"],

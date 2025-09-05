@@ -14,6 +14,7 @@ import { FirstCharOutlineDrawer } from "./draw/FirstCharOutlineDrawer";
 import { HighlighterDrawer } from "./draw/HighlighterDrawer";
 import { FirstCharHighlighterDrawer } from "./draw/FirstCharHighlighterDrawer";
 import { BracketDrawer } from "./draw/BracketDrawer";
+import { DrawOption } from "./draw/DrawOption";
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -74,7 +75,15 @@ function drawFocusAnchor(): void {
     return;
   }
 
-  drawer.draw(renderer, new AnchorDrawInfo(sentenceRects, firstCharRect));
+  const anchorDrawInfo = new AnchorDrawInfo(sentenceRects, firstCharRect);
+  const drawOption = new DrawOption(
+    config.drawColor.selected,
+    config.opacity,
+    config.lineWidth,
+    config.borderRadius
+  );
+
+  drawer.draw(renderer, anchorDrawInfo, drawOption);
 }
 
 let drawScheduled = false;

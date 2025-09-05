@@ -3,9 +3,10 @@ import { ConfigManager } from "../config/ConfigManager";
 import { Point } from "../Point";
 import { Renderer } from "../Renderer";
 import { Drawer } from "./Drawer";
+import { DrawOption } from "./DrawOption";
 
 export class BracketDrawer implements Drawer {
-  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo): void {
+  draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {
     const config = ConfigManager.getInstance();
 
     const firstRect = anchorDrawInfo.sentenceRects[0];
@@ -15,21 +16,21 @@ export class BracketDrawer implements Drawer {
 
     const leftBracketVertices: Point[] = [];
     leftBracketVertices.push(
-      new Point(firstRect.left - config.marginX + bracketWidth, firstRect.top),
-      new Point(firstRect.left - config.marginX, firstRect.top),
-      new Point(firstRect.left - config.marginX, firstRect.bottom),
-      new Point(firstRect.left - config.marginX + bracketWidth, firstRect.bottom)
+      new Point(firstRect.left - config.paddingX + bracketWidth, firstRect.top),
+      new Point(firstRect.left - config.paddingX, firstRect.top),
+      new Point(firstRect.left - config.paddingX, firstRect.bottom),
+      new Point(firstRect.left - config.paddingX + bracketWidth, firstRect.bottom)
     );
 
     const rightBracketVertices: Point[] = [];
     rightBracketVertices.push(
-      new Point(lastRect.right + config.marginX - bracketWidth, lastRect.top),
-      new Point(lastRect.right + config.marginX, lastRect.top),
-      new Point(lastRect.right + config.marginX, lastRect.bottom),
-      new Point(lastRect.right + config.marginX - bracketWidth, lastRect.bottom)
+      new Point(lastRect.right + config.paddingX - bracketWidth, lastRect.top),
+      new Point(lastRect.right + config.paddingX, lastRect.top),
+      new Point(lastRect.right + config.paddingX, lastRect.bottom),
+      new Point(lastRect.right + config.paddingX - bracketWidth, lastRect.bottom)
     );
 
-    renderer.drawLines(leftBracketVertices, config.drawColor.selected, config.lineWidth);
-    renderer.drawLines(rightBracketVertices, config.drawColor.selected, config.lineWidth);
+    renderer.drawLines(leftBracketVertices, drawOption);
+    renderer.drawLines(rightBracketVertices, drawOption);
   }
 }
