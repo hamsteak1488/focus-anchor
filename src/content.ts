@@ -78,9 +78,9 @@ function drawFocusAnchor(): void {
   const anchorDrawInfo = new AnchorDrawInfo(sentenceRects, firstCharRect);
   const drawOption = new DrawOption(
     config.drawColor.selected,
-    config.opacity,
-    config.lineWidth,
-    config.borderRadius
+    config.opacity.value,
+    config.lineWidth.value,
+    config.borderRadius.value
   );
 
   drawer.draw(renderer, anchorDrawInfo, drawOption);
@@ -137,6 +137,8 @@ document.addEventListener("mouseup", function (e) {
 
   registerDrawSchedule();
   focusManager.scrollToFocusedAnchor();
+
+  console.debug(`config.focusYBias.value=${config.focusYBias.value}`);
 });
 
 function isFocusedOnEditableNode(): boolean {

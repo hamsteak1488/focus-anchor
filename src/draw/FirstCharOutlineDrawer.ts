@@ -12,10 +12,10 @@ export class FirstCharOutlineDrawer implements Drawer {
     if (!anchorDrawInfo.firstCharRect) return;
     const marginAppliedRect = Rect.from(anchorDrawInfo.firstCharRect);
 
-    marginAppliedRect.x -= config.paddingX;
-    marginAppliedRect.y -= config.paddingY;
-    marginAppliedRect.width += config.paddingX * 2;
-    marginAppliedRect.height += config.paddingY * 2;
+    marginAppliedRect.x -= config.paddingX.value;
+    marginAppliedRect.y -= config.paddingY.value;
+    marginAppliedRect.width += config.paddingX.value * 2;
+    marginAppliedRect.height += config.paddingY.value * 2;
 
     renderer.drawRect(marginAppliedRect, drawOption);
   }

@@ -684,7 +684,7 @@ export class FocusManager {
 
     const focusedAnchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];
 
-    this.scrollToAnchor(focusedAnchor, this.config.focusYBias / 100);
+    this.scrollToAnchor(focusedAnchor, this.config.focusYBias.value / 100);
   }
 
   existsAnchorRects(): boolean {

@@ -2,6 +2,7 @@ import { DrawStrategy } from "../draw/DrawStrategy.enum";
 import { ToastOption } from "../Renderer";
 import { ColorConfigItem } from "./ColorConfigItem";
 import { DropdownConfigItem } from "./DropdownConfigItem";
+import { NumberConfigItem } from "./NumberConfigItem";
 
 export class Config {
   static get default(): Config {
@@ -11,6 +12,10 @@ export class Config {
   static from(object: any): Config {
     const config = Config.default;
     for (const key of Object.keys(object) as (keyof Config)[]) {
+      if (config[key] instanceof NumberConfigItem) {
+        config[key].value = object[key].value;
+        continue;
+      }
       if (config[key] instanceof DropdownConfigItem) {
         config[key].selected = object[key].selected;
         continue;
@@ -28,6 +33,10 @@ export class Config {
   assignProperties(object: any): void {
     const config: Config = this;
     for (const key of Object.keys(object) as (keyof Config)[]) {
+      if (config[key] instanceof NumberConfigItem) {
+        config[key].value = object[key].value;
+        continue;
+      }
       if (config[key] instanceof DropdownConfigItem) {
         config[key].selected = object[key].selected;
         continue;
@@ -41,8 +50,8 @@ export class Config {
     }
   }
 
-  paddingX: number = parseInt(process.env.DEFAULT_PADDING_X ?? "1");
-  paddingY: number = parseInt(process.env.DEFAULT_PADDING_Y ?? "2");
+  paddingX = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? "1"), null, null);
+  paddingY = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? "2"), null, null);
 
   drawStrategy = new DropdownConfigItem<DrawStrategy>(
     DrawStrategy[(process.env.DEFAULT_DRAW_STRATEGY as keyof typeof DrawStrategy) ?? "Underline"],
@@ -58,11 +67,20 @@ export class Config {
       DrawStrategy.Bracket,
     ]
   );
+
   drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? "#FF0000");
-  opacity: number = parseInt(process.env.DEFAULT_OPACITY ?? "100");
-  lineWidth: number = parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3");
-  borderRadius: number = parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0");
-  fixedUnderlineLength: number = parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20");
+
+  opacity = new NumberConfigItem(parseInt(process.env.DEFAULT_OPACITY ?? "100"), 0, 100);
+
+  lineWidth = new NumberConfigItem(parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3"), 1, null);
+
+  borderRadius = new NumberConfigItem(parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0"), 0, 100);
+
+  fixedUnderlineLength = new NumberConfigItem(
+    parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20"),
+    null,
+    null
+  );
 
   autoScroll = new DropdownConfigItem<string>(process.env.DEFAULT_AUTO_SCROLL ?? "true", [
     "true",
@@ -78,7 +96,8 @@ export class Config {
     ["true", "false"]
   );
 
-  focusYBias: number = parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "20");
+  focusYBias = new NumberConfigItem(parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "30"), 0, 100);
+
   toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? "Control+Shift+F";
   movePrevHotkey: string = process.env.DEFAULT_MOVE_PREV_HOTKEY ?? "ArrowLeft";
   moveNextHotkey: string = process.env.DEFAULT_MOVE_NEXT_HOTKEY ?? "ArrowRight";

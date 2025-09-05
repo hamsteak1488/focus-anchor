@@ -1,6 +1,8 @@
 import { ColorConfigItem } from "./config/ColorConfigItem";
 import { Config } from "./config/Config";
 import { DropdownConfigItem } from "./config/DropdownConfigItem";
+import { NumberConfigItem } from "./config/NumberConfigItem";
+import { Utils } from "./Utils";
 
 const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
@@ -205,8 +207,8 @@ function loadConfigToElements(config: Config): void {
 
     if (hotkeyConfigKeys.includes(key)) {
       (element as HTMLInputElement).value = formatHotkeyForDisplay(config[key] as string);
-    } else if (typeof config[key] === "number") {
-      (element as HTMLInputElement).value = String(config[key]);
+    } else if (config[key] instanceof NumberConfigItem) {
+      (element as HTMLInputElement).value = String(config[key].value);
     } else if (config[key] instanceof DropdownConfigItem) {
       (element as HTMLSelectElement).value = String(config[key].selected);
     } else if (config[key] instanceof ColorConfigItem) {
@@ -230,8 +232,12 @@ function saveConfigFromElements() {
         .split("+")
         .map((part) => storageKeyMap[part] || part)
         .join("+");
-    } else if (typeof config[key] === "number") {
-      (config[key] as number) = Number((element as HTMLInputElement).value);
+    } else if (config[key] instanceof NumberConfigItem) {
+      config[key].value = Utils.clamp(
+        Number((element as HTMLInputElement).value),
+        config[key].minValue,
+        config[key].maxValue
+      );
     } else if (config[key] instanceof DropdownConfigItem) {
       config[key].selected = (element as HTMLSelectElement).value;
     } else if (config[key] instanceof ColorConfigItem) {

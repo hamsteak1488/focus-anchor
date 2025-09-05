@@ -16,18 +16,18 @@ export class BracketDrawer implements Drawer {
 
     const leftBracketVertices: Point[] = [];
     leftBracketVertices.push(
-      new Point(firstRect.left - config.paddingX + bracketWidth, firstRect.top),
-      new Point(firstRect.left - config.paddingX, firstRect.top),
-      new Point(firstRect.left - config.paddingX, firstRect.bottom),
-      new Point(firstRect.left - config.paddingX + bracketWidth, firstRect.bottom)
+      new Point(firstRect.left - config.paddingX.value + bracketWidth, firstRect.top),
+      new Point(firstRect.left - config.paddingX.value, firstRect.top),
+      new Point(firstRect.left - config.paddingX.value, firstRect.bottom),
+      new Point(firstRect.left - config.paddingX.value + bracketWidth, firstRect.bottom)
     );
 
     const rightBracketVertices: Point[] = [];
     rightBracketVertices.push(
-      new Point(lastRect.right + config.paddingX - bracketWidth, lastRect.top),
-      new Point(lastRect.right + config.paddingX, lastRect.top),
-      new Point(lastRect.right + config.paddingX, lastRect.bottom),
-      new Point(lastRect.right + config.paddingX - bracketWidth, lastRect.bottom)
+      new Point(lastRect.right + config.paddingX.value - bracketWidth, lastRect.top),
+      new Point(lastRect.right + config.paddingX.value, lastRect.top),
+      new Point(lastRect.right + config.paddingX.value, lastRect.bottom),
+      new Point(lastRect.right + config.paddingX.value - bracketWidth, lastRect.bottom)
     );
 
     renderer.drawLines(leftBracketVertices, drawOption);

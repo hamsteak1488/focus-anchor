@@ -27,15 +27,15 @@ export class MergedOutlineDrawer implements Drawer {
 
         // 충돌안하면 사각형 분리.
         if (rect.right < nextRect.left || rect.left > nextRect.right) {
-          leftVertices[0].y -= config.paddingY;
-          leftVertices[leftVertices.length - 1].y += config.paddingY;
-          rightVertices[0].y -= config.paddingY;
-          rightVertices[rightVertices.length - 1].y += config.paddingY;
+          leftVertices[0].y -= config.paddingY.value;
+          leftVertices[leftVertices.length - 1].y += config.paddingY.value;
+          rightVertices[0].y -= config.paddingY.value;
+          rightVertices[rightVertices.length - 1].y += config.paddingY.value;
           for (const v of leftVertices) {
-            v.x -= config.paddingX;
+            v.x -= config.paddingX.value;
           }
           for (const v of rightVertices) {
-            v.x += config.paddingX;
+            v.x += config.paddingX.value;
           }
 
           const polygonVertices: Point[] = [];
@@ -64,15 +64,15 @@ export class MergedOutlineDrawer implements Drawer {
       }
     }
 
-    leftVertices[0].y -= config.paddingY;
-    leftVertices[leftVertices.length - 1].y += config.paddingY;
-    rightVertices[0].y -= config.paddingY;
-    rightVertices[rightVertices.length - 1].y += config.paddingY;
+    leftVertices[0].y -= config.paddingY.value;
+    leftVertices[leftVertices.length - 1].y += config.paddingY.value;
+    rightVertices[0].y -= config.paddingY.value;
+    rightVertices[rightVertices.length - 1].y += config.paddingY.value;
     for (const v of leftVertices) {
-      v.x -= config.paddingX;
+      v.x -= config.paddingX.value;
     }
     for (const v of rightVertices) {
-      v.x += config.paddingX;
+      v.x += config.paddingX.value;
     }
 
     const polygonVertices: Point[] = [];

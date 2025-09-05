@@ -13,11 +13,11 @@ export class FixedUnderlineDrawer implements Drawer {
     polygonVertices.push(
       new Point(
         anchorDrawInfo.sentenceRects[0].left,
-        anchorDrawInfo.sentenceRects[0].bottom + config.paddingY
+        anchorDrawInfo.sentenceRects[0].bottom + config.paddingY.value
       ),
       new Point(
-        anchorDrawInfo.sentenceRects[0].left + config.fixedUnderlineLength,
-        anchorDrawInfo.sentenceRects[0].bottom + config.paddingY
+        anchorDrawInfo.sentenceRects[0].left + config.fixedUnderlineLength.value,
+        anchorDrawInfo.sentenceRects[0].bottom + config.paddingY.value
       )
     );
     renderer.drawPolygon(polygonVertices, drawOption);

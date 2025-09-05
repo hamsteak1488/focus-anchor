@@ -12,8 +12,8 @@ export class UnderlineDrawer implements Drawer {
     for (const rect of anchorDrawInfo.sentenceRects) {
       const polygonVertices: Point[] = [];
       polygonVertices.push(
-        new Point(rect.left, rect.bottom + config.paddingY),
-        new Point(rect.right, rect.bottom + config.paddingY)
+        new Point(rect.left, rect.bottom + config.paddingY.value),
+        new Point(rect.right, rect.bottom + config.paddingY.value)
       );
       renderer.drawPolygon(polygonVertices, drawOption);
     }
