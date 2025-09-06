@@ -121,23 +121,6 @@ export class Renderer {
     this.ctx.strokeStyle = drawOption.rgba;
     this.ctx.lineWidth = drawOption.lineWidth;
 
-    /* 다각형 변 중 가장 짧은 것을 기준으로 코너 둥글기 값을 결정  */
-    let lineLengthSum = 0;
-    let minLineLength = -1;
-    for (let i = 0; i < vertices.length; i++) {
-      const cur = vertices[i];
-      const nxt = vertices[(i + 1) % vertices.length];
-
-      const lineLength = Utils.getVectorLength(cur, nxt);
-
-      lineLengthSum += lineLength;
-
-      if (minLineLength == -1 || lineLength < minLineLength) {
-        minLineLength = lineLength;
-      }
-    }
-    const radius = (minLineLength / 2) * (drawOption.radiusRatio / 100);
-
     this.ctx.beginPath();
     for (let i = 0; i < vertices.length; i++) {
       const prv = vertices[(i - 1 + vertices.length) % vertices.length];
@@ -149,11 +132,17 @@ export class Renderer {
         u->v = {v.x-u.x, v.y-u.y}
         normalized(u->v) = {(v.x-u.x) / len(u->v), (v.y-u.y) / len(u->v)}
       */
+      const lenFromPrvToCur = Utils.getVectorLength(prv, cur);
       const lenFromCurToNxt = Utils.getVectorLength(cur, nxt);
+      const lenFromNxtToNnxt = Utils.getVectorLength(nxt, nnxt);
 
+      const prvRadius =
+        (Math.min(lenFromPrvToCur, lenFromCurToNxt) / 2) * (drawOption.radiusRatio / 100);
+      const radius =
+        (Math.min(lenFromCurToNxt, lenFromNxtToNnxt) / 2) * (drawOption.radiusRatio / 100);
       const offset = new Point(
-        ((nxt.x - cur.x) / lenFromCurToNxt) * radius,
-        ((nxt.y - cur.y) / lenFromCurToNxt) * radius
+        ((nxt.x - cur.x) / lenFromCurToNxt) * prvRadius,
+        ((nxt.y - cur.y) / lenFromCurToNxt) * prvRadius
       );
       const offseted = Point.add(cur, offset);
 

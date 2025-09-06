@@ -70,7 +70,9 @@ export class FocusManager {
     this.nodeIdxMap.clear();
     this.anchorMap.clear();
 
+    // const startTime = Date.now();
     this.traverseAndExtract(document.body, []);
+    // console.debug(`Extracted text nodes. elapsed => ${Date.now() - startTime}ms`);
 
     for (let i = 0; i < this.nodeList.length; i++) {
       this.nodeIdxMap.set(this.nodeList[i], i);
