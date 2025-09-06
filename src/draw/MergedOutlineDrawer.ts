@@ -59,12 +59,16 @@ export class MergedOutlineDrawer implements Drawer {
         let leftY = rect.left <= nextRect.left ? rect.bottom : nextRect.top;
         leftVertices.pop();
         leftVertices.push(new Point(rect.left, leftY));
-        leftVertices.push(new Point(nextRect.left, leftY));
+        if (rect.left != nextRect.left) {
+          leftVertices.push(new Point(nextRect.left, leftY));
+        }
 
         let rightY = rect.right >= nextRect.right ? rect.bottom : nextRect.top;
         rightVertices.pop();
         rightVertices.push(new Point(rect.right, rightY));
-        rightVertices.push(new Point(nextRect.right, rightY));
+        if (rect.right != nextRect.right) {
+          rightVertices.push(new Point(nextRect.right, rightY));
+        }
       }
     }
 

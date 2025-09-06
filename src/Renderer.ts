@@ -1,6 +1,7 @@
 import { DrawOption } from "./draw/DrawOption";
 import { Point } from "./Point";
 import { Rect } from "./Rect";
+import { Utils } from "./Utils";
 
 export enum ToastOption {
   TOP = "top",
@@ -120,12 +121,51 @@ export class Renderer {
     this.ctx.strokeStyle = drawOption.rgba;
     this.ctx.lineWidth = drawOption.lineWidth;
 
-    this.ctx.beginPath();
-    this.ctx.moveTo(vertices[vertices.length - 1].x, vertices[vertices.length - 1].y);
+    /* 다각형 변 중 가장 짧은 것을 기준으로 코너 둥글기 값을 결정  */
+    let lineLengthSum = 0;
+    let minLineLength = -1;
     for (let i = 0; i < vertices.length; i++) {
-      this.ctx.lineTo(vertices[i].x, vertices[i].y);
+      const cur = vertices[i];
+      const nxt = vertices[(i + 1) % vertices.length];
+
+      const lineLength = Utils.getVectorLength(cur, nxt);
+
+      lineLengthSum += lineLength;
+
+      if (minLineLength == -1 || lineLength < minLineLength) {
+        minLineLength = lineLength;
+      }
     }
-    this.ctx.closePath();
+    const radius = (minLineLength / 2) * (drawOption.radiusRatio / 100);
+
+    this.ctx.beginPath();
+    for (let i = 0; i < vertices.length; i++) {
+      const prv = vertices[(i - 1 + vertices.length) % vertices.length];
+      const cur = vertices[i];
+      const nxt = vertices[(i + 1) % vertices.length];
+      const nnxt = vertices[(i + 2) % vertices.length];
+
+      /*
+        u->v = {v.x-u.x, v.y-u.y}
+        normalized(u->v) = {(v.x-u.x) / len(u->v), (v.y-u.y) / len(u->v)}
+      */
+      const lenFromCurToNxt = Utils.getVectorLength(cur, nxt);
+
+      const offset = new Point(
+        ((nxt.x - cur.x) / lenFromCurToNxt) * radius,
+        ((nxt.y - cur.y) / lenFromCurToNxt) * radius
+      );
+      const offseted = Point.add(cur, offset);
+
+      if (prv.x == nxt.x || prv.y == nxt.y) {
+        this.ctx.moveTo(cur.x, cur.y);
+        this.ctx.lineTo(offseted.x, offseted.y);
+      }
+
+      this.ctx.moveTo(offseted.x, offseted.y);
+
+      this.ctx.arcTo(nxt.x, nxt.y, nnxt.x, nnxt.y, radius);
+    }
     this.ctx.stroke();
   }
 

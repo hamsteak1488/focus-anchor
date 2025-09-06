@@ -6,4 +6,8 @@ export class Point {
     this.x = x;
     this.y = y;
   }
+
+  static add(u: Point, v: Point): Point {
+    return new Point(u.x + v.x, u.y + v.y);
+  }
 }
