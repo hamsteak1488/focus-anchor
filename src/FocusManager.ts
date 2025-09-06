@@ -113,6 +113,10 @@ export class FocusManager {
     this.focusInfo.nodeIdx = firstNodeIdx;
     this.focusInfo.anchorIdx = 0;
 
+    // for (let i = 0; i < this.nodeList.length; i++) {
+    //   console.debug(`nodeList[${i}].text=${this.nodeList[i].textContent}`);
+    // }
+
     // for (const nodeIdx of this.anchorMap.keys()) {
     //   console.debug(`nodeList[${nodeIdx}]`);
     //   for (const anchor of this.anchorMap.get(nodeIdx)!) {
@@ -171,10 +175,9 @@ export class FocusManager {
     }
 
     // 텍스트 노드로부터 텍스트 조각 획득.
-    const trimmedContent = node.textContent?.trim();
-    if (trimmedContent && trimmedContent.length <= this.maxTextContentLength) {
-      for (let i = 0; i < node.textContent!.length; i++) {
-        fragmentList.push(new Fragment(node.textContent![i], node, i));
+    if (node.textContent && node.textContent.length <= this.maxTextContentLength) {
+      for (let i = 0; i < node.textContent.length; i++) {
+        fragmentList.push(new Fragment(node.textContent[i], node, i));
       }
     }
     return;
@@ -360,17 +363,18 @@ export class FocusManager {
       const node = this.nodeList[endNodeIdx];
 
       if (node.nodeType != Node.TEXT_NODE || !node.textContent) {
+        endNodeIdx++;
         continue;
       }
 
       while (endOffset <= node.textContent.length) {
         range.setEnd(this.nodeList[endNodeIdx], endOffset);
 
-    const domRects = range.getClientRects();
-    if (!domRects || domRects.length == 0) {
+        const domRects = range.getClientRects();
+        if (!domRects || domRects.length == 0) {
           endOffset++;
           continue;
-    }
+        }
 
         const rect = this.getRectFromDomRect(domRects[0]);
         if (rect.width * rect.height < this.minRectArea) {

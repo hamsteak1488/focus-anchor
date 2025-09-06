@@ -271,3 +271,12 @@ function loadStorageConfigs() {
   });
 }
 loadStorageConfigs();
+
+/*
+debug.ts 테스트용.
+
+document.addEventListener("DOMContentLoaded", function (e) {
+  console.debug("hi!");
+  activateFocus();
+});
+*/
