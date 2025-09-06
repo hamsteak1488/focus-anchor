@@ -15,9 +15,11 @@ export class FocusManager {
   private nonSplitTagList: RegExp[] = [
     /^a$/i,
     /^b$/i,
+    /^del$/i,
     /^em$/i,
     /^font$/i,
     /^i$/i,
+    /^ins$/i,
     /^mark$/i,
     /^s$/i,
     /^span$/i,
@@ -40,6 +42,12 @@ export class FocusManager {
 
       execResult = regexp.exec(str);
       if (execResult == null && /^[0-9]+\. /.test(str.substring(0, lastIndex))) {
+        return false;
+      }
+      if (execResult == null && /^[0-9]+\.[0-9]+\. /.test(str.substring(0, lastIndex))) {
+        return false;
+      }
+      if (execResult == null && /^[0-9]+\.[0-9]+\.[0-9]+\. /.test(str.substring(0, lastIndex))) {
         return false;
       }
 
