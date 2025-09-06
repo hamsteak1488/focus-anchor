@@ -344,36 +344,50 @@ export class FocusManager {
   }
 
   private getFirstCharRectFromAnchor(anchor: Anchor): Rect | null {
-    const node = this.nodeList[anchor.startNodeIdx];
-    if (!node.textContent) return null;
-
-    let startOffset = anchor.startOffsetIdx;
-    while (startOffset < anchor.endOffsetIdx) {
-      const ch = node.textContent[startOffset];
-      if (ch.trim().length == 0) {
-        startOffset++;
-      } else {
-        break;
-      }
-    }
-
-    if (startOffset == anchor.endOffsetIdx) return null;
-
     const range = document.createRange();
-    range.setStart(node, startOffset);
-    range.setEnd(node, startOffset + 1);
 
     if (typeof range.getClientRects !== "function") {
       console.warn("getClientRects를 지원하지 않는 환경입니다.");
       return null;
     }
 
+    range.setStart(this.nodeList[anchor.startNodeIdx], anchor.startOffsetIdx);
+
+    let endNodeIdx = anchor.startNodeIdx;
+    let endOffset = anchor.startOffsetIdx;
+    this.anchorMap;
+    while (endNodeIdx <= anchor.endNodeIdx) {
+      const node = this.nodeList[endNodeIdx];
+
+      if (node.nodeType != Node.TEXT_NODE || !node.textContent) {
+        continue;
+      }
+
+      while (endOffset <= node.textContent.length) {
+        range.setEnd(this.nodeList[endNodeIdx], endOffset);
+
     const domRects = range.getClientRects();
     if (!domRects || domRects.length == 0) {
-      return null;
+          endOffset++;
+          continue;
     }
 
-    return this.getRectFromDomRect(domRects[0]);
+        const rect = this.getRectFromDomRect(domRects[0]);
+        if (rect.width * rect.height < this.minRectArea) {
+          endOffset++;
+          continue;
+        }
+
+        return rect;
+      }
+
+      if (endOffset > node.textContent.length) {
+        endNodeIdx++;
+        endOffset = 0;
+      }
+    }
+
+    return null;
   }
 
   private getRectsAreaOfAnchor(anchor: Anchor): number {
