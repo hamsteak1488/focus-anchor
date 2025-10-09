@@ -84,8 +84,8 @@ export class Config {
     "true",
     "false",
   ]);
-  scrollBehavior = new DropdownConfigItem<ScrollBehavior>(
-    (process.env.DEFAULT_SCROLL_BEHAVIOR as ScrollBehavior) ?? "smooth",
+  scrollBehavior = new DropdownConfigItem<string>(
+    (process.env.DEFAULT_SCROLL_BEHAVIOR as string) ?? "smooth",
     ["smooth", "instant"]
   );
 

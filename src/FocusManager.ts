@@ -645,9 +645,32 @@ export class FocusManager {
         ? Math.max(0, distFromAnchorToTargetY - availableIncreaseScrollAmount)
         : Math.max(0, Math.abs(distFromAnchorToTargetY) - availableDecreaseScrollAmount) * -1;
 
+    let scrollAmount = distFromAnchorToTargetY - deficientScroll;
+
+    let scrollBehavior = this.config.scrollBehavior.selected;
+    let preScrollAmount = 0;
+    const preScrollVerticalOffset = 0;
+    if (scrollBehavior == "mixed") {
+      if (anchorRect.top < preScrollVerticalOffset) {
+        preScrollAmount = anchorRect.top - preScrollVerticalOffset;
+        preScrollAmount = Math.max(preScrollAmount, scrollAmount);
+      }
+      if (anchorRect.bottom > viewportHeight - preScrollVerticalOffset) {
+        preScrollAmount = anchorRect.bottom - (viewportHeight - preScrollVerticalOffset);
+        preScrollAmount = Math.min(preScrollAmount, scrollAmount);
+      }
+      scrollParent.scrollBy({
+        top: preScrollAmount,
+        behavior: "instant",
+      });
+      scrollBehavior = "smooth";
+    }
+
+    scrollAmount -= preScrollAmount;
+
     scrollParent.scrollBy({
-      top: distFromAnchorToTargetY - deficientScroll,
-      behavior: this.config.scrollBehavior.selected,
+      top: scrollAmount,
+      behavior: scrollBehavior as ScrollBehavior,
     });
 
     // 부족한 스크롤은 조상 스크롤 컨테이너에게 전가.
@@ -685,9 +708,14 @@ export class FocusManager {
 
     // console.debug(`deficientScroll=${deficientScroll}`);
 
+    let scrollBehavior = this.config.scrollBehavior.selected;
+    if (scrollBehavior == "mixed") {
+      scrollBehavior = "smooth";
+    }
+
     scrollParent.scrollBy({
       top: extraOffset - deficientScroll,
-      behavior: this.config.scrollBehavior.selected,
+      behavior: scrollBehavior as ScrollBehavior,
     });
 
     // 부족한 스크롤은 또다시 조상 스크롤 컨테이너에게 전가.
