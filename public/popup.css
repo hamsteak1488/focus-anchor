@@ -75,3 +75,23 @@ summary {
   text-align: center;
   font-weight: 500;
 }
+
+#press {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background-color: red;
+  border-radius: 50%;
+  border: 1px solid white;
+}
+
+#update-history-container {
+  padding: 1.5em;
+  width: 410px;
+}

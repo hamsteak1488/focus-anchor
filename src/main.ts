@@ -3,17 +3,25 @@ import { Config } from "./config/Config";
 import { DropdownConfigItem } from "./config/DropdownConfigItem";
 import { NumberConfigItem } from "./config/NumberConfigItem";
 import { Utils } from "./Utils";
+import { LATEST_RELEASE_NOTE } from "./releaseNotes";
 
+// Main container elements
+const mainContainer = document.getElementById("main-container")!;
 const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
 const resetButton = document.getElementById("reset") as HTMLButtonElement;
 const state = document.getElementById("state") as HTMLElement;
+const pressButton = document.getElementById("press")!;
+
+// Update history elements
+const updateHistoryContainer = document.getElementById("update-history-container")!;
+const backToMainButton = document.getElementById("back-to-main")!;
+const updateNotesContainer = document.getElementById("update-notes")!;
 
 let activeHotkeyInputId: string | null = null;
 
 const hotkeyConfigKeys = ["toggleHotkey", "movePrevHotkey", "moveNextHotkey"];
 
-// Maps storage value (e.g., "ArrowRight") to display value (e.g., "→")
 const keyDisplayMap: { [key: string]: string } = {
   ArrowUp: "↑",
   ArrowDown: "↓",
@@ -21,7 +29,6 @@ const keyDisplayMap: { [key: string]: string } = {
   ArrowRight: "→",
 };
 
-// Maps display value back to storage value
 const storageKeyMap = Object.fromEntries(Object.entries(keyDisplayMap).map(([k, v]) => [v, k]));
 
 function flash(text: string, error = false): void {
@@ -125,9 +132,36 @@ function checkRuntimeError(): boolean {
   return false;
 }
 
+async function checkForUpdates() {
+  const { updateChecked } = await chrome.storage.local.get("updateChecked");
+  const badge = pressButton.querySelector(".notification-badge") as HTMLElement;
+  if (badge && !updateChecked) {
+    badge.style.display = "block";
+  }
+}
+
+async function showUpdateHistory() {
+  updateNotesContainer.innerHTML = LATEST_RELEASE_NOTE;
+
+  mainContainer.style.display = "none";
+  updateHistoryContainer.style.display = "block";
+
+  await chrome.storage.local.set({ updateChecked: true });
+  const badge = pressButton.querySelector(".notification-badge") as HTMLElement;
+  if (badge) {
+    badge.style.display = "none";
+  }
+}
+
+function showMainContent() {
+  mainContainer.style.display = "block";
+  updateHistoryContainer.style.display = "none";
+}
+
+// --- Event Listeners ---
+
 focusToggleButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
   chrome.tabs.sendMessage(tab.id!, { type: "toggle-focus" }, (resp) => {
     if (checkRuntimeError()) return;
     if (!resp) return;
@@ -137,18 +171,22 @@ focusToggleButton.addEventListener("click", async () => {
 
 reloadButton.addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
   chrome.tabs.sendMessage(tab.id!, { type: "reload" }, (resp) => {
     if (checkRuntimeError()) return;
   });
 });
 
-function reset() {
+pressButton.addEventListener("click", async () => {
+  showUpdateHistory();
+});
+
+backToMainButton.addEventListener("click", showMainContent);
+
+resetButton.onclick = () => {
   loadConfigToElements(Config.default);
   chrome.storage.local.set({ config: Config.default });
   flash("✔ Reseted!");
-}
-resetButton.onclick = reset;
+};
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === "local" && change.config) {
@@ -166,6 +204,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   loadStorageConfigs();
+  checkForUpdates();
 
   const config = Config.default;
   for (const key of Object.keys(config) as (keyof Config)[]) {
