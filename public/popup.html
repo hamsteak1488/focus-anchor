@@ -13,7 +13,14 @@
     />
   </head>
   <body>
-    <div style="margin: 1.5em; width: 380px">
+    <div id="update-history-container" style="display: none">
+      <button id="back-to-main" class="btn btn-outline-secondary btn-sm">← Back</button>
+      <hr />
+      <h2>What's New</h2>
+      <div id="update-notes"></div>
+    </div>
+
+    <div id="main-container" style="margin: 1.5em; width: 380px">
       <!-- Slightly wider container -->
       <div id="control-container">
         <button id="focus-toggle" class="btn btn-light border-dark" style="font-weight: 600">
@@ -21,6 +28,10 @@
         </button>
         <button id="reload" class="btn btn-outline-secondary">
           <img src="images/reload-128.png" alt="reload" />
+        </button>
+        <button id="press" class="btn btn-outline-secondary">
+          <img src="images/press-128.png" alt="press" />
+          <span class="notification-badge" style="display: none"></span>
         </button>
       </div>
       <hr />
