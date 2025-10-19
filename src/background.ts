@@ -8,6 +8,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === "update") {
-    chrome.storage.local.set({ updateChecked: false });
+    chrome.storage.local.set({ releaseNoteChecked: false });
   }
 });

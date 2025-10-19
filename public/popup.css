@@ -76,7 +76,7 @@ summary {
   font-weight: 500;
 }
 
-#press {
+#release-note-button {
   position: relative;
 }
 
@@ -91,7 +91,7 @@ summary {
   border: 1px solid white;
 }
 
-#update-history-container {
+#release-note-container {
   padding: 1.5em;
   width: 410px;
 }

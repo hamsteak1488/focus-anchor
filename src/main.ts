@@ -11,12 +11,12 @@ const focusToggleButton = document.getElementById("focus-toggle")!;
 const reloadButton = document.getElementById("reload")!;
 const resetButton = document.getElementById("reset") as HTMLButtonElement;
 const state = document.getElementById("state") as HTMLElement;
-const pressButton = document.getElementById("press")!;
+const releaseNoteButton = document.getElementById("release-note-button")!;
 
-// Update history elements
-const updateHistoryContainer = document.getElementById("update-history-container")!;
+// Release Note elements
+const releaseNoteContainer = document.getElementById("release-note-container")!;
 const backToMainButton = document.getElementById("back-to-main")!;
-const updateNotesContainer = document.getElementById("update-notes")!;
+const releaseNote = document.getElementById("release-note")!;
 
 let activeHotkeyInputId: string | null = null;
 
@@ -133,21 +133,21 @@ function checkRuntimeError(): boolean {
 }
 
 async function checkForUpdates() {
-  const { updateChecked } = await chrome.storage.local.get("updateChecked");
-  const badge = pressButton.querySelector(".notification-badge") as HTMLElement;
-  if (badge && !updateChecked) {
+  const { releaseNoteChecked } = await chrome.storage.local.get("releaseNoteChecked");
+  const badge = releaseNoteButton.querySelector(".notification-badge") as HTMLElement;
+  if (badge && !releaseNoteChecked) {
     badge.style.display = "block";
   }
 }
 
-async function showUpdateHistory() {
-  updateNotesContainer.innerHTML = LATEST_RELEASE_NOTE;
+async function showReleaseNote() {
+  releaseNote.innerHTML = LATEST_RELEASE_NOTE;
 
   mainContainer.style.display = "none";
-  updateHistoryContainer.style.display = "block";
+  releaseNoteContainer.style.display = "block";
 
-  await chrome.storage.local.set({ updateChecked: true });
-  const badge = pressButton.querySelector(".notification-badge") as HTMLElement;
+  chrome.storage.local.set({ releaseNoteChecked: true });
+  const badge = releaseNoteButton.querySelector(".notification-badge") as HTMLElement;
   if (badge) {
     badge.style.display = "none";
   }
@@ -155,7 +155,7 @@ async function showUpdateHistory() {
 
 function showMainContent() {
   mainContainer.style.display = "block";
-  updateHistoryContainer.style.display = "none";
+  releaseNoteContainer.style.display = "none";
 }
 
 // --- Event Listeners ---
@@ -176,8 +176,8 @@ reloadButton.addEventListener("click", async () => {
   });
 });
 
-pressButton.addEventListener("click", async () => {
-  showUpdateHistory();
+releaseNoteButton.addEventListener("click", async () => {
+  showReleaseNote();
 });
 
 backToMainButton.addEventListener("click", showMainContent);
