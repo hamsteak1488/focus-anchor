@@ -3,7 +3,7 @@ import { Config } from "./config/Config";
 import { DropdownConfigItem } from "./config/DropdownConfigItem";
 import { NumberConfigItem } from "./config/NumberConfigItem";
 import { Utils } from "./Utils";
-import { LATEST_RELEASE_NOTE } from "./releaseNotes";
+import { getReleaseNoteHtml } from "./releaseNote";
 
 // Main container elements
 const mainContainer = document.getElementById("main-container")!;
@@ -141,7 +141,7 @@ async function checkForUpdates() {
 }
 
 async function showReleaseNote() {
-  releaseNote.innerHTML = LATEST_RELEASE_NOTE;
+  releaseNote.innerHTML = await getReleaseNoteHtml();
 
   mainContainer.style.display = "none";
   releaseNoteContainer.style.display = "block";
