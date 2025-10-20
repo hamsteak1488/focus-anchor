@@ -145,6 +145,7 @@ async function showReleaseNote() {
 
   mainContainer.style.display = "none";
   releaseNoteContainer.style.display = "block";
+  releaseNoteContainer.style.width = "600px";
 
   chrome.storage.local.set({ releaseNoteChecked: true });
   const badge = releaseNoteButton.querySelector(".notification-badge") as HTMLElement;
