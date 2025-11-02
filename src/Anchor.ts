@@ -8,7 +8,7 @@ export class Anchor {
     startNodeIdx: number,
     startOffsetIdx: number,
     endNodeIdx: number,
-    endOffsetIdx: number
+    endOffsetIdx: number,
   ) {
     this.startNodeIdx = startNodeIdx;
     this.startOffsetIdx = startOffsetIdx;

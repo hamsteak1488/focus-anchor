@@ -1,9 +1,9 @@
-import { AnchorDrawInfo } from "../AnchorDrawInfo";
-import { ConfigManager } from "../config/ConfigManager";
-import { Point } from "../Point";
-import { Renderer } from "../Renderer";
-import { Drawer } from "./Drawer";
-import { DrawOption } from "./DrawOption";
+import { AnchorDrawInfo } from '../AnchorDrawInfo';
+import { ConfigManager } from '../config/ConfigManager';
+import { Point } from '../Point';
+import { Renderer } from '../Renderer';
+import { Drawer } from './Drawer';
+import { DrawOption } from './DrawOption';
 
 export class MergedOutlineDrawer implements Drawer {
   draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {

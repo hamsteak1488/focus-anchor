@@ -1,8 +1,8 @@
-import { DrawStrategy } from "../draw/DrawStrategy.enum";
-import { ToastOption } from "../Renderer";
-import { ColorConfigItem } from "./ColorConfigItem";
-import { DropdownConfigItem } from "./DropdownConfigItem";
-import { NumberConfigItem } from "./NumberConfigItem";
+import { DrawStrategy } from '../draw/DrawStrategy.enum';
+import { ToastOption } from '../Renderer';
+import { ColorConfigItem } from './ColorConfigItem';
+import { DropdownConfigItem } from './DropdownConfigItem';
+import { NumberConfigItem } from './NumberConfigItem';
 
 export class Config {
   static get default(): Config {
@@ -28,7 +28,7 @@ export class Config {
           object[key] = new NumberConfigItem(
             oldNumberValue,
             config[key].minValue,
-            config[key].maxValue
+            config[key].maxValue,
           );
         }
 
@@ -48,11 +48,11 @@ export class Config {
     }
   }
 
-  paddingX = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? "1"), null, null);
-  paddingY = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? "2"), null, null);
+  paddingX = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? '1'), null, null);
+  paddingY = new NumberConfigItem(parseInt(process.env.DEFAULT_PADDING_X ?? '2'), null, null);
 
   drawStrategy = new DropdownConfigItem<DrawStrategy>(
-    DrawStrategy[(process.env.DEFAULT_DRAW_STRATEGY as keyof typeof DrawStrategy) ?? "Underline"],
+    DrawStrategy[(process.env.DEFAULT_DRAW_STRATEGY as keyof typeof DrawStrategy) ?? 'Underline'],
     [
       DrawStrategy.Underline,
       DrawStrategy.FixedUnderline,
@@ -63,45 +63,45 @@ export class Config {
       DrawStrategy.Highlighter,
       DrawStrategy.FirstCharHighlighter,
       DrawStrategy.Bracket,
-    ]
+    ],
   );
 
-  drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? "#FF0000");
+  drawColor = new ColorConfigItem(process.env.DEFAULT_DRAW_COLOR ?? '#FF0000');
 
-  opacity = new NumberConfigItem(parseInt(process.env.DEFAULT_OPACITY ?? "100"), 0, 100);
+  opacity = new NumberConfigItem(parseInt(process.env.DEFAULT_OPACITY ?? '100'), 0, 100);
 
-  lineWidth = new NumberConfigItem(parseInt(process.env.DEFAULT_LINE_WIDTH ?? "3"), 1, null);
+  lineWidth = new NumberConfigItem(parseInt(process.env.DEFAULT_LINE_WIDTH ?? '3'), 1, null);
 
-  borderRadius = new NumberConfigItem(parseInt(process.env.DEFAULT_BORDER_RADIUS ?? "0"), 0, 100);
+  borderRadius = new NumberConfigItem(parseInt(process.env.DEFAULT_BORDER_RADIUS ?? '0'), 0, 100);
 
   fixedUnderlineLength = new NumberConfigItem(
-    parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? "20"),
+    parseInt(process.env.DEFAULT_FIXED_UNDERLINE_LENGTH ?? '20'),
     null,
-    null
+    null,
   );
 
-  autoScroll = new DropdownConfigItem<string>(process.env.DEFAULT_AUTO_SCROLL ?? "true", [
-    "true",
-    "false",
+  autoScroll = new DropdownConfigItem<string>(process.env.DEFAULT_AUTO_SCROLL ?? 'true', [
+    'true',
+    'false',
   ]);
   scrollBehavior = new DropdownConfigItem<ScrollBehavior>(
-    (process.env.DEFAULT_SCROLL_BEHAVIOR as ScrollBehavior) ?? "smooth",
-    ["smooth", "instant"]
+    (process.env.DEFAULT_SCROLL_BEHAVIOR as ScrollBehavior) ?? 'smooth',
+    ['smooth', 'instant'],
   );
 
   strictClickDetection = new DropdownConfigItem<string>(
-    process.env.DEFAULT_STRICT_CLICK_DETECTION ?? "true",
-    ["true", "false"]
+    process.env.DEFAULT_STRICT_CLICK_DETECTION ?? 'true',
+    ['true', 'false'],
   );
 
-  focusYBias = new NumberConfigItem(parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? "30"), 0, 100);
+  focusYBias = new NumberConfigItem(parseInt(process.env.DEFAULT_FOCUS_Y_BIAS ?? '30'), 0, 100);
 
-  toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? "Control+Shift+F";
-  movePrevHotkey: string = process.env.DEFAULT_MOVE_PREV_HOTKEY ?? "ArrowLeft";
-  moveNextHotkey: string = process.env.DEFAULT_MOVE_NEXT_HOTKEY ?? "ArrowRight";
+  toggleHotkey: string = process.env.DEFAULT_TOGGLE_HOTKEY ?? 'Control+Shift+F';
+  movePrevHotkey: string = process.env.DEFAULT_MOVE_PREV_HOTKEY ?? 'ArrowLeft';
+  moveNextHotkey: string = process.env.DEFAULT_MOVE_NEXT_HOTKEY ?? 'ArrowRight';
 
   toastOption = new DropdownConfigItem<ToastOption>(
     (process.env.DEFAULT_TOAST_OPTION as ToastOption) ?? ToastOption.BOTTOM,
-    [ToastOption.TOP, ToastOption.MIDDLE, ToastOption.BOTTOM, ToastOption.DISABLED]
+    [ToastOption.TOP, ToastOption.MIDDLE, ToastOption.BOTTOM, ToastOption.DISABLED],
   );
 }

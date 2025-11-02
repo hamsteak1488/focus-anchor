@@ -1,21 +1,21 @@
-import { Point } from "./Point";
-import { Renderer } from "./Renderer";
-import { FocusManager } from "./FocusManager";
-import { Drawer } from "./draw/Drawer";
-import { DrawStrategy } from "./draw/DrawStrategy.enum";
-import { OutlineDrawer } from "./draw/OutlineDrawer";
-import { FixedUnderlineDrawer } from "./draw/FixedUnderlineDrawer";
-import { UnderlineDrawer } from "./draw/UnderlineDrawer";
-import { MergedOutlineDrawer } from "./draw/MergedOutlineDrawer";
-import { SpotlightDrawer } from "./draw/SpotlightDrawer";
-import { ConfigManager } from "./config/ConfigManager";
-import { AnchorDrawInfo } from "./AnchorDrawInfo";
-import { FirstCharOutlineDrawer } from "./draw/FirstCharOutlineDrawer";
-import { HighlighterDrawer } from "./draw/HighlighterDrawer";
-import { FirstCharHighlighterDrawer } from "./draw/FirstCharHighlighterDrawer";
-import { BracketDrawer } from "./draw/BracketDrawer";
-import { DrawOption } from "./draw/DrawOption";
-import { Config } from "./config/Config";
+import { Point } from './Point';
+import { Renderer } from './Renderer';
+import { FocusManager } from './FocusManager';
+import { Drawer } from './draw/Drawer';
+import { DrawStrategy } from './draw/DrawStrategy.enum';
+import { OutlineDrawer } from './draw/OutlineDrawer';
+import { FixedUnderlineDrawer } from './draw/FixedUnderlineDrawer';
+import { UnderlineDrawer } from './draw/UnderlineDrawer';
+import { MergedOutlineDrawer } from './draw/MergedOutlineDrawer';
+import { SpotlightDrawer } from './draw/SpotlightDrawer';
+import { ConfigManager } from './config/ConfigManager';
+import { AnchorDrawInfo } from './AnchorDrawInfo';
+import { FirstCharOutlineDrawer } from './draw/FirstCharOutlineDrawer';
+import { HighlighterDrawer } from './draw/HighlighterDrawer';
+import { FirstCharHighlighterDrawer } from './draw/FirstCharHighlighterDrawer';
+import { BracketDrawer } from './draw/BracketDrawer';
+import { DrawOption } from './draw/DrawOption';
+import { Config } from './config/Config';
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -36,7 +36,7 @@ let focusActive = false;
 const config = ConfigManager.getInstance();
 
 function init(): void {
-  chrome.storage.local.get("config").then(({ config: loadedConfig }) => {
+  chrome.storage.local.get('config').then(({ config: loadedConfig }) => {
     if (loadedConfig) {
       Config.assignProperties(config, loadedConfig);
     }
@@ -49,15 +49,15 @@ function init(): void {
 
 function activateFocus(): void {
   init();
-  renderer.showToast("Focus activated", 1000, config.toastOption.selected, "rgba(0, 128, 0, 0.5)");
+  renderer.showToast('Focus activated', 1000, config.toastOption.selected, 'rgba(0, 128, 0, 0.5)');
 }
 function deactivateFocus(): void {
   renderer.clearCanvas();
   renderer.showToast(
-    "Focus deactivated",
+    'Focus deactivated',
     1000,
     config.toastOption.selected,
-    "rgba(196, 64, 0, 0.5)"
+    'rgba(196, 64, 0, 0.5)',
   );
 }
 
@@ -81,7 +81,7 @@ function drawFocusAnchor(): void {
     config.drawColor.selected,
     config.opacity.value,
     config.lineWidth.value,
-    config.borderRadius.value
+    config.borderRadius.value,
   );
 
   drawer.draw(renderer, anchorDrawInfo, drawOption);
@@ -98,7 +98,7 @@ function registerDrawSchedule(): void {
   });
 }
 
-window.addEventListener("resize", () => {
+window.addEventListener('resize', () => {
   if (!focusActive) return;
 
   renderer.updateCanvasSize();
@@ -106,15 +106,15 @@ window.addEventListener("resize", () => {
 });
 
 document.addEventListener(
-  "scroll",
+  'scroll',
   function (e) {
     if (!focusActive) return;
     registerDrawSchedule();
   },
-  true
+  true,
 );
 
-document.addEventListener("mouseup", function (e) {
+document.addEventListener('mouseup', function (e) {
   if (!focusActive) return;
 
   const clickedTarget = e.target;
@@ -130,7 +130,7 @@ document.addEventListener("mouseup", function (e) {
 
   const focusMoved = focusManager.moveFocusFromClickInfo(
     clickedNode,
-    new Point(clickedX, clickedY)
+    new Point(clickedX, clickedY),
   );
   if (!focusMoved) return;
 
@@ -142,8 +142,8 @@ document.addEventListener("mouseup", function (e) {
 
 function isFocusedOnEditableNode(): boolean {
   switch (document.activeElement?.nodeName) {
-    case "input":
-    case "textarea":
+    case 'input':
+    case 'textarea':
       return true;
   }
   if (
@@ -158,22 +158,22 @@ function isFocusedOnEditableNode(): boolean {
 }
 
 function isHotkeyMatch(event: KeyboardEvent, hotkey: string): boolean {
-  const parts = hotkey.split("+").map((p) => p.trim());
+  const parts = hotkey.split('+').map((p) => p.trim());
   let key = parts.pop(); // The last part is the key
 
   const modifiers = {
-    control: parts.includes("Control"),
-    shift: parts.includes("Shift"),
-    alt: parts.includes("Alt"),
-    meta: parts.includes("Meta"), // Command key on Mac
+    control: parts.includes('Control'),
+    shift: parts.includes('Shift'),
+    alt: parts.includes('Alt'),
+    meta: parts.includes('Meta'), // Command key on Mac
   };
 
   let eventKey = event.key;
   if (eventKey.length === 1 && eventKey.match(/[a-zA-Z]/)) {
     eventKey = eventKey.toUpperCase();
   }
-  if (eventKey === " ") {
-    eventKey = "Space";
+  if (eventKey === ' ') {
+    eventKey = 'Space';
   }
 
   return (
@@ -189,19 +189,19 @@ function toggleFocus(): void {
   focusActive = !focusActive;
 
   if (focusActive) {
-    document.documentElement.classList.add("focus-anchor__active");
+    document.documentElement.classList.add('focus-anchor__active');
     activateFocus();
   } else {
-    document.documentElement.classList.remove("focus-anchor__active");
+    document.documentElement.classList.remove('focus-anchor__active');
     deactivateFocus();
   }
 }
 
 function sendToggleFocus(): void {
-  chrome.runtime.sendMessage({ type: "request-toggle-focus" });
+  chrome.runtime.sendMessage({ type: 'request-toggle-focus' });
 }
 
-document.addEventListener("keydown", function (e) {
+document.addEventListener('keydown', function (e) {
   if (isFocusedOnEditableNode()) return;
 
   if (isHotkeyMatch(e, config.toggleHotkey)) {
@@ -238,23 +238,23 @@ document.addEventListener("keydown", function (e) {
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "toggle-focus") {
+  if (msg.type === 'toggle-focus') {
     toggleFocus();
     sendResponse({ isActive: focusActive });
   }
-  if (msg.type === "get-focus-state") {
+  if (msg.type === 'get-focus-state') {
     sendResponse({ isActive: focusActive });
   }
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  if (msg.type === "reload") {
+  if (msg.type === 'reload') {
     init();
   }
 });
 
 chrome.storage.onChanged.addListener((change, area) => {
-  if (area === "local" && change.config) {
+  if (area === 'local' && change.config) {
     Config.assignProperties(config, change.config.newValue);
     if (focusActive) {
       registerDrawSchedule();
@@ -264,7 +264,7 @@ chrome.storage.onChanged.addListener((change, area) => {
 });
 
 function loadStorageConfigs() {
-  chrome.storage.local.get("config").then(({ config: storedConfig }) => {
+  chrome.storage.local.get('config').then(({ config: storedConfig }) => {
     if (storedConfig) {
       Config.assignProperties(config, storedConfig);
     }

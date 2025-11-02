@@ -1,4 +1,4 @@
-import { colord } from "colord";
+import { colord } from 'colord';
 
 export class DrawOption {
   /** RGB color */

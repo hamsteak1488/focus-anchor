@@ -1,9 +1,9 @@
-import { AnchorDrawInfo } from "../AnchorDrawInfo";
-import { ConfigManager } from "../config/ConfigManager";
-import { Point } from "../Point";
-import { Renderer } from "../Renderer";
-import { Drawer } from "./Drawer";
-import { DrawOption } from "./DrawOption";
+import { AnchorDrawInfo } from '../AnchorDrawInfo';
+import { ConfigManager } from '../config/ConfigManager';
+import { Point } from '../Point';
+import { Renderer } from '../Renderer';
+import { Drawer } from './Drawer';
+import { DrawOption } from './DrawOption';
 
 export class BracketDrawer implements Drawer {
   draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {
@@ -19,7 +19,7 @@ export class BracketDrawer implements Drawer {
       new Point(firstRect.left - config.paddingX.value + bracketWidth, firstRect.top),
       new Point(firstRect.left - config.paddingX.value, firstRect.top),
       new Point(firstRect.left - config.paddingX.value, firstRect.bottom),
-      new Point(firstRect.left - config.paddingX.value + bracketWidth, firstRect.bottom)
+      new Point(firstRect.left - config.paddingX.value + bracketWidth, firstRect.bottom),
     );
 
     const rightBracketVertices: Point[] = [];
@@ -27,7 +27,7 @@ export class BracketDrawer implements Drawer {
       new Point(lastRect.right + config.paddingX.value - bracketWidth, lastRect.top),
       new Point(lastRect.right + config.paddingX.value, lastRect.top),
       new Point(lastRect.right + config.paddingX.value, lastRect.bottom),
-      new Point(lastRect.right + config.paddingX.value - bracketWidth, lastRect.bottom)
+      new Point(lastRect.right + config.paddingX.value - bracketWidth, lastRect.bottom),
     );
 
     renderer.drawLines(leftBracketVertices, drawOption);

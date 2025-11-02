@@ -1,4 +1,4 @@
-import { Point } from "./Point";
+import { Point } from './Point';
 
 export class Utils {
   static clamp(value: number, min: number | null, max: number | null) {

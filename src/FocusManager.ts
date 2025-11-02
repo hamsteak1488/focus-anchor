@@ -1,11 +1,11 @@
-import { Anchor } from "./Anchor";
-import { ConfigManager } from "./config/ConfigManager";
-import { SimpleDelimitPattern } from "./SimpleDelimitPattern";
-import { FocusInfo } from "./FocusInfo";
-import { Fragment } from "./Fragment";
-import { Point } from "./Point";
-import { Rect } from "./Rect";
-import { DelimitPattern } from "./DelimitPattern";
+import { Anchor } from './Anchor';
+import { ConfigManager } from './config/ConfigManager';
+import { SimpleDelimitPattern } from './SimpleDelimitPattern';
+import { FocusInfo } from './FocusInfo';
+import { Fragment } from './Fragment';
+import { Point } from './Point';
+import { Rect } from './Rect';
+import { DelimitPattern } from './DelimitPattern';
 
 export class FocusManager {
   private nodeList: Node[] = [];
@@ -95,7 +95,7 @@ export class FocusManager {
             return false;
           }
           return true;
-        })
+        }),
       );
     });
 
@@ -174,12 +174,12 @@ export class FocusManager {
     const parentElement = node.parentElement!;
     const style = getComputedStyle(parentElement);
     if (
-      style.display === "none" ||
-      style.visibility === "hidden" ||
+      style.display === 'none' ||
+      style.visibility === 'hidden' ||
       parseFloat(style.opacity) === 0 ||
       parseFloat(style.width) * parseFloat(style.height) < this.minRectArea ||
-      parentElement.hasAttribute("hidden") ||
-      parentElement.getAttribute("aria-hidden") === "true"
+      parentElement.hasAttribute('hidden') ||
+      parentElement.getAttribute('aria-hidden') === 'true'
     ) {
       return;
     }
@@ -226,7 +226,7 @@ export class FocusManager {
 
       // 만약 비분리 태그가 아닐 경우 텍스트 조각이 이어져 해석되면 안되므로 구분용 조각 추가.
       if (!this.shouldSplitOnNode(child)) {
-        fragmentList.push(new Fragment("", child, -1));
+        fragmentList.push(new Fragment('', child, -1));
       }
     });
 
@@ -241,7 +241,7 @@ export class FocusManager {
 
   private extractAnchorFromFragments(fragmentList: Fragment[]) {
     let fragmentBuffer: Fragment[] = [];
-    let stringBuffer = "";
+    let stringBuffer = '';
 
     for (const fragment of fragmentList) {
       if (fragment.idx != -1) {
@@ -279,7 +279,7 @@ export class FocusManager {
       if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
         const firstFragmentNodeIdx = this.nodeIdxMap.get(fragmentBuffer[0].node)!;
         const lastFragmentNodeIdx = this.nodeIdxMap.get(
-          fragmentBuffer[fragmentBuffer.length - 1].node
+          fragmentBuffer[fragmentBuffer.length - 1].node,
         )!;
 
         if (!this.anchorMap.get(firstFragmentNodeIdx)) {
@@ -292,19 +292,19 @@ export class FocusManager {
               firstFragmentNodeIdx,
               fragmentBuffer[0].idx,
               lastFragmentNodeIdx,
-              fragmentBuffer[fragmentBuffer.length - 1].idx + 1
-            )
+              fragmentBuffer[fragmentBuffer.length - 1].idx + 1,
+            ),
           );
       }
       fragmentBuffer = [];
-      stringBuffer = "";
+      stringBuffer = '';
     }
 
     // 마지막 문장이 프레임버퍼에 남아있을 수 있으므로 처리.
     if (fragmentBuffer.length > 0 && stringBuffer.trim()) {
       const firstFragmentNodeIdx = this.nodeIdxMap.get(fragmentBuffer[0].node)!;
       const lastFragmentNodeIdx = this.nodeIdxMap.get(
-        fragmentBuffer[fragmentBuffer.length - 1].node
+        fragmentBuffer[fragmentBuffer.length - 1].node,
       )!;
 
       if (!this.anchorMap.has(firstFragmentNodeIdx)) {
@@ -317,8 +317,8 @@ export class FocusManager {
             firstFragmentNodeIdx,
             fragmentBuffer[0].idx,
             lastFragmentNodeIdx,
-            fragmentBuffer[fragmentBuffer.length - 1].idx + 1
-          )
+            fragmentBuffer[fragmentBuffer.length - 1].idx + 1,
+          ),
         );
     }
   }
@@ -332,8 +332,8 @@ export class FocusManager {
     range.setStart(this.nodeList[anchor.startNodeIdx], anchor.startOffsetIdx);
     range.setEnd(this.nodeList[anchor.endNodeIdx], anchor.endOffsetIdx);
 
-    if (typeof range.getClientRects !== "function") {
-      console.warn("getClientRects를 지원하지 않는 환경입니다.");
+    if (typeof range.getClientRects !== 'function') {
+      console.warn('getClientRects를 지원하지 않는 환경입니다.');
       return [];
     }
 
@@ -349,7 +349,7 @@ export class FocusManager {
     }
 
     if (!rects || rects.length == 0) {
-      console.warn("getRectsFromAnchor: Failed to get rects from domRects");
+      console.warn('getRectsFromAnchor: Failed to get rects from domRects');
       return [];
     }
 
@@ -359,8 +359,8 @@ export class FocusManager {
   private getFirstCharRectFromAnchor(anchor: Anchor): Rect | null {
     const range = document.createRange();
 
-    if (typeof range.getClientRects !== "function") {
-      console.warn("getClientRects를 지원하지 않는 환경입니다.");
+    if (typeof range.getClientRects !== 'function') {
+      console.warn('getClientRects를 지원하지 않는 환경입니다.');
       return null;
     }
 
@@ -500,7 +500,7 @@ export class FocusManager {
     const res = this.findFocusInfoFromClickInfo(pNode, clickedPoint);
     if (res) return res;
 
-    if (this.config.strictClickDetection.selected == "true") return null;
+    if (this.config.strictClickDetection.selected == 'true') return null;
 
     // 만약 정확한 앵커를 찾지 못했다면, 근접한 앵커 정보라도 반환.
     for (let pNodeIdx = clickedNodeIdx; pNodeIdx < this.nodeList.length; pNodeIdx++) {
@@ -583,7 +583,7 @@ export class FocusManager {
   private isScrollable(node: HTMLElement): boolean {
     const overflowY = getComputedStyle(node).overflowY;
     return (
-      (overflowY === "scroll" || overflowY === "auto") && node.scrollHeight > node.clientHeight
+      (overflowY === 'scroll' || overflowY === 'auto') && node.scrollHeight > node.clientHeight
     );
   }
 
@@ -605,7 +605,7 @@ export class FocusManager {
         포커스 노드의 스크롤 부모를 찾기 전에 fixed 속성을 가진 노드를 만났다면
         스크롤 부모의 스크롤을 이동해도 포커스 노드의 위치는 변하지 않으므로 스크롤 취소.
       */
-      if (getComputedStyle(scrollParent).position == "fixed") return;
+      if (getComputedStyle(scrollParent).position == 'fixed') return;
       scrollParent = scrollParent.parentElement;
     }
 
@@ -631,12 +631,12 @@ export class FocusManager {
     // (스크롤바를 아래로 움직일 수 있는 양)과 (포커스된 문장이 스크롤로 인해 화면에서 사라지지 않는 최대 한도량) 중 더 작은값을 '스크롤 증가 한도량'으로 지정.
     const availableIncreaseScrollAmount = Math.min(
       maxScrollTop - scrollParent.scrollTop,
-      Math.max(0, anchorRect.top - scrollParentTop)
+      Math.max(0, anchorRect.top - scrollParentTop),
     );
     // 최대로 감소가능한 스크롤 양 계산.
     const availableDecreaseScrollAmount = Math.min(
       scrollParent.scrollTop,
-      Math.max(0, scrollParentBottom - anchorRect.bottom)
+      Math.max(0, scrollParentBottom - anchorRect.bottom),
     );
 
     // 부모 스크롤 컨테이너를 최대한 움직였을 때 타겟 Y좌표까지 부족한 스크롤 계산.
@@ -658,14 +658,14 @@ export class FocusManager {
 
   private scrollRecursively(element: HTMLElement, extraOffset: number): void {
     // 스크롤 컨테이너의 position이 fixed라면 스크롤 부모의 스크롤을 움직여도 위치가 변하지 않음.
-    if (getComputedStyle(element).position == "fixed") {
+    if (getComputedStyle(element).position == 'fixed') {
       return;
     }
 
     let scrollParent = element.parentElement;
     while (scrollParent) {
       if (this.isScrollable(scrollParent)) break;
-      if (getComputedStyle(scrollParent).position == "fixed") return;
+      if (getComputedStyle(scrollParent).position == 'fixed') return;
       scrollParent = scrollParent.parentElement;
     }
 
@@ -707,7 +707,7 @@ export class FocusManager {
   }
 
   scrollToFocusedAnchor(): void {
-    if (this.config.autoScroll.selected != "true") return;
+    if (this.config.autoScroll.selected != 'true') return;
     if (this.focusInfo.nodeIdx == -1) return;
 
     const focusedAnchor = this.anchorMap.get(this.focusInfo.nodeIdx)![this.focusInfo.anchorIdx];

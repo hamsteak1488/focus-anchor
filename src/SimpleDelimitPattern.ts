@@ -1,4 +1,4 @@
-import { DelimitPattern } from "./DelimitPattern";
+import { DelimitPattern } from './DelimitPattern';
 
 export class SimpleDelimitPattern extends DelimitPattern {
   regexp: RegExp;

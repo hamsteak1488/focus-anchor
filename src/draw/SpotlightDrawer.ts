@@ -1,9 +1,9 @@
-import { AnchorDrawInfo } from "../AnchorDrawInfo";
-import { ConfigManager } from "../config/ConfigManager";
-import { Rect } from "../Rect";
-import { Renderer } from "../Renderer";
-import { Drawer } from "./Drawer";
-import { DrawOption } from "./DrawOption";
+import { AnchorDrawInfo } from '../AnchorDrawInfo';
+import { ConfigManager } from '../config/ConfigManager';
+import { Rect } from '../Rect';
+import { Renderer } from '../Renderer';
+import { Drawer } from './Drawer';
+import { DrawOption } from './DrawOption';
 
 export class SpotlightDrawer implements Drawer {
   draw(renderer: Renderer, anchorDrawInfo: AnchorDrawInfo, drawOption: DrawOption): void {
@@ -19,7 +19,7 @@ export class SpotlightDrawer implements Drawer {
       marginAppliedRects.push(marginAppliedRect);
     }
 
-    drawOption.rgbColor = "rgb(0, 0, 0)";
+    drawOption.rgbColor = 'rgb(0, 0, 0)';
     drawOption.opacityRatio = 50;
 
     renderer.fillOutsideOfRects(marginAppliedRects, drawOption);

@@ -1,13 +1,13 @@
-import { DrawOption } from "./draw/DrawOption";
-import { Point } from "./Point";
-import { Rect } from "./Rect";
-import { Utils } from "./Utils";
+import { DrawOption } from './draw/DrawOption';
+import { Point } from './Point';
+import { Rect } from './Rect';
+import { Utils } from './Utils';
 
 export enum ToastOption {
-  TOP = "top",
-  MIDDLE = "middle",
-  BOTTOM = "bottom",
-  DISABLED = "disabled",
+  TOP = 'top',
+  MIDDLE = 'middle',
+  BOTTOM = 'bottom',
+  DISABLED = 'disabled',
 }
 
 export class Renderer {
@@ -15,25 +15,25 @@ export class Renderer {
   ctx: CanvasRenderingContext2D;
 
   constructor() {
-    const canvasId = "focus-anchor-overlay-canvas";
+    const canvasId = 'focus-anchor-overlay-canvas';
 
     this.canvas = document.getElementById(canvasId) as HTMLCanvasElement;
     if (!this.canvas) {
-      this.canvas = document.createElement("canvas");
+      this.canvas = document.createElement('canvas');
       this.canvas.id = canvasId;
 
       Object.assign(this.canvas.style, {
-        position: "fixed",
-        top: "0",
-        left: "0",
-        pointerEvents: "none",
-        zIndex: "9999",
+        position: 'fixed',
+        top: '0',
+        left: '0',
+        pointerEvents: 'none',
+        zIndex: '9999',
       });
 
       document.body.appendChild(this.canvas);
     }
 
-    this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
+    this.ctx = this.canvas.getContext('2d') as CanvasRenderingContext2D;
   }
 
   updateCanvasZIndex(zIndex: number) {
@@ -97,8 +97,8 @@ export class Renderer {
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
     this.ctx.save();
-    this.ctx.globalCompositeOperation = "destination-out";
-    this.ctx.fillStyle = "rgba(0, 0, 0, 1)";
+    this.ctx.globalCompositeOperation = 'destination-out';
+    this.ctx.fillStyle = 'rgba(0, 0, 0, 1)';
 
     for (const rect of rects) {
       const radius = (Math.min(rect.width, rect.height) * (drawOption.radiusRatio / 100)) / 2;
@@ -142,7 +142,7 @@ export class Renderer {
         (Math.min(lenFromCurToNxt, lenFromNxtToNnxt) / 2) * (drawOption.radiusRatio / 100);
       const offset = new Point(
         ((nxt.x - cur.x) / lenFromCurToNxt) * prvRadius,
-        ((nxt.y - cur.y) / lenFromCurToNxt) * prvRadius
+        ((nxt.y - cur.y) / lenFromCurToNxt) * prvRadius,
       );
       const offseted = Point.add(cur, offset);
 
@@ -166,46 +166,46 @@ export class Renderer {
     message: string,
     duration: number = 3000,
     toastOption: ToastOption = ToastOption.BOTTOM,
-    color: string = "rgba(0, 0, 0, 0.7)"
+    color: string = 'rgba(0, 0, 0, 0.7)',
   ): void {
     if (toastOption === ToastOption.DISABLED) {
       return;
     }
 
-    const toast = document.createElement("div");
+    const toast = document.createElement('div');
     toast.textContent = message;
-    toast.style.position = "fixed";
-    toast.style.left = "50%";
-    toast.style.transform = "translateX(-50%)";
+    toast.style.position = 'fixed';
+    toast.style.left = '50%';
+    toast.style.transform = 'translateX(-50%)';
     toast.style.backgroundColor = color;
-    toast.style.color = "white";
-    toast.style.padding = "10px 20px";
-    toast.style.borderRadius = "5px";
-    toast.style.zIndex = "999999";
-    toast.style.opacity = "0";
-    toast.style.transition = "opacity 0.5s";
+    toast.style.color = 'white';
+    toast.style.padding = '10px 20px';
+    toast.style.borderRadius = '5px';
+    toast.style.zIndex = '999999';
+    toast.style.opacity = '0';
+    toast.style.transition = 'opacity 0.5s';
 
     switch (toastOption) {
       case ToastOption.TOP:
-        toast.style.top = "10%";
+        toast.style.top = '10%';
         break;
       case ToastOption.MIDDLE:
-        toast.style.top = "50%";
-        toast.style.transform = "translate(-50%, -50%)";
+        toast.style.top = '50%';
+        toast.style.transform = 'translate(-50%, -50%)';
         break;
       case ToastOption.BOTTOM:
-        toast.style.bottom = "10%";
+        toast.style.bottom = '10%';
         break;
     }
 
     document.body.appendChild(toast);
 
     setTimeout(() => {
-      toast.style.opacity = "1";
+      toast.style.opacity = '1';
     }, 100);
 
     setTimeout(() => {
-      toast.style.opacity = "0";
+      toast.style.opacity = '0';
       setTimeout(() => {
         document.body.removeChild(toast);
       }, 500);

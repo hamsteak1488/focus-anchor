@@ -1,6 +1,6 @@
 body {
   background-color: #f0f2f5; /* Softer, modern background */
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; /* Modern font stack */
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Modern font stack */
 }
 #control-container {
   display: flex;

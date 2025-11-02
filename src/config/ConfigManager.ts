@@ -1,4 +1,4 @@
-import { Config } from "./Config";
+import { Config } from './Config';
 
 export class ConfigManager {
   private static instance: Config;
