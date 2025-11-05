@@ -79,7 +79,6 @@ function initIdle(): void {
 function activateFocus(): void {
   update();
   renderer.showToast('Focus activated', 1000, config.toastOption.selected, 'rgba(0, 128, 0, 0.5)');
-  console.debug(`idle=${idle}`);
   idle.start();
 }
 function deactivateFocus(): void {
