@@ -50,7 +50,6 @@
               value="1"
             />
           </div>
-
           <div class="config-item">
             <label class="form-label mb-0">Padding-Y</label>
             <input
@@ -228,8 +227,28 @@
               <option value="disabled">Disabled</option>
             </select>
           </div>
+
+          <div class="config-item">
+            <label class="form-label mb-0">Use Focus on Cursor Stay</label>
+            <select class="form-select w-auto" id="config-useFocusOnCursorStay">
+              <option value="true">true</option>
+              <option value="false" selected>false</option>
+            </select>
+          </div>
+          <div class="config-item">
+            <label class="form-label mb-0">Focus on Cursor Stay Time (ms)</label>
+            <input
+              class="form-control"
+              style="max-width: 8ch"
+              id="config-focusOnCursorStayTimeMillis"
+              type="number"
+              value="700"
+            />
+          </div>
         </div>
+
         <br />
+
         <button id="reset" class="btn btn-secondary">Reset config</button>
         <p id="state"></p>
       </details>

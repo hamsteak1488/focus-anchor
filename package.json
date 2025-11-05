@@ -37,6 +37,7 @@
     "tar-fs": "^2.1.3"
   },
   "dependencies": {
-    "colord": "^2.9.3"
+    "colord": "^2.9.3",
+    "idlejs": "^3.0.0"
   }
 }

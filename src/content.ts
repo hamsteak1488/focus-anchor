@@ -16,6 +16,7 @@ import { FirstCharHighlighterDrawer } from './draw/FirstCharHighlighterDrawer';
 import { BracketDrawer } from './draw/BracketDrawer';
 import { DrawOption } from './draw/DrawOption';
 import { Config } from './config/Config';
+import { Idle } from 'idlejs';
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -32,24 +33,54 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.Bracket, new BracketDrawer()],
 ]);
 
+let idle: Idle;
+let movedAfterFocus = false;
+let lastMouseMoveClientX: number, lastMouseMoveClientY: number;
+
 let focusActive = false;
 const config = ConfigManager.getInstance();
 
-function init(): void {
-  chrome.storage.local.get('config').then(({ config: loadedConfig }) => {
-    if (loadedConfig) {
-      Config.assignProperties(config, loadedConfig);
-    }
-  });
+async function init() {
+  loadStorageConfigs();
 
+  initIdle();
+
+  renderer.updateCanvasZIndex(focusManager.maxZIndex + 1);
+
+  update();
+}
+
+async function update() {
   focusManager.init();
   renderer.updateCanvasSize();
-  renderer.updateCanvasZIndex(focusManager.maxZIndex + 1);
+}
+
+async function updateConfig(newConfig: any) {
+  Config.assignProperties(config, newConfig);
+  idle.within(config.focusOnCursorStayTimeMillis.value, 1);
+
+  if (focusActive) {
+    registerFrameDrawSchedule();
+    focusManager.scrollToFocusedAnchor();
+  }
+}
+
+function initIdle(): void {
+  const idleTimeOutMillis = 700;
+
+  idle = new Idle()
+    .whenNotInteractive()
+    .within(idleTimeOutMillis, 1)
+    .do(() => {
+      idleEvent();
+    });
 }
 
 function activateFocus(): void {
-  init();
+  update();
   renderer.showToast('Focus activated', 1000, config.toastOption.selected, 'rgba(0, 128, 0, 0.5)');
+  console.debug(`idle=${idle}`);
+  idle.start();
 }
 function deactivateFocus(): void {
   renderer.clearCanvas();
@@ -59,6 +90,7 @@ function deactivateFocus(): void {
     config.toastOption.selected,
     'rgba(196, 64, 0, 0.5)',
   );
+  idle.stop();
 }
 
 function drawFocusAnchor(): void {
@@ -87,14 +119,14 @@ function drawFocusAnchor(): void {
   drawer.draw(renderer, anchorDrawInfo, drawOption);
 }
 
-let drawScheduled = false;
-function registerDrawSchedule(): void {
-  if (drawScheduled) return;
-  drawScheduled = true;
+let nextFrameDrawScheduled = false;
+function registerFrameDrawSchedule(): void {
+  if (nextFrameDrawScheduled) return;
+  nextFrameDrawScheduled = true;
 
   requestAnimationFrame(() => {
     drawFocusAnchor();
-    drawScheduled = false;
+    nextFrameDrawScheduled = false;
   });
 }
 
@@ -102,43 +134,52 @@ window.addEventListener('resize', () => {
   if (!focusActive) return;
 
   renderer.updateCanvasSize();
-  registerDrawSchedule();
+  registerFrameDrawSchedule();
 });
 
 document.addEventListener(
   'scroll',
   function (e) {
     if (!focusActive) return;
-    registerDrawSchedule();
+    registerFrameDrawSchedule();
   },
   true,
 );
 
-document.addEventListener('mouseup', function (e) {
-  if (!focusActive) return;
+document.addEventListener('mousemove', async function (e) {
+  lastMouseMoveClientX = e.clientX;
+  lastMouseMoveClientY = e.clientY;
+  movedAfterFocus = true;
+});
 
-  const clickedTarget = e.target;
-  const clickedX = e.clientX;
-  const clickedY = e.clientY;
-
-  if (!clickedTarget || !(clickedTarget instanceof Node)) {
+document.addEventListener('click', async function (e) {
+  if (!e.target || !(e.target instanceof Element)) {
     console.debug("Type of clicked target is not 'Node'");
     return;
   }
-  const clickedNode = clickedTarget as Node;
-  // focusManager.printInfo(clickedNode as Node);
 
-  const focusMoved = focusManager.moveFocusFromClickInfo(
-    clickedNode,
-    new Point(clickedX, clickedY),
-  );
-  if (!focusMoved) return;
-
-  if (!focusManager.existsAnchorRects()) return;
-
-  registerDrawSchedule();
-  focusManager.scrollToFocusedAnchor();
+  mouseFocus(e.target, e.clientX, e.clientY);
 });
+
+async function idleEvent() {
+  if (config.useFocusOnCursorStay.selected === 'false') return;
+
+  console.debug(`idle!`);
+
+  if (!movedAfterFocus) {
+    return;
+  }
+
+  const element = document.elementFromPoint(lastMouseMoveClientX, lastMouseMoveClientY);
+  if (!element) {
+    console.debug(
+      `Return value of elementFromPoint(${lastMouseMoveClientX}, ${lastMouseMoveClientY}) is null.`,
+    );
+    return;
+  }
+
+  mouseFocus(element, lastMouseMoveClientX, lastMouseMoveClientY);
+}
 
 function isFocusedOnEditableNode(): boolean {
   switch (document.activeElement?.nodeName) {
@@ -185,6 +226,25 @@ function isHotkeyMatch(event: KeyboardEvent, hotkey: string): boolean {
   );
 }
 
+async function mouseFocus(targetElement: Element, clientX: number, clientY: number) {
+  if (!focusActive) return;
+
+  // focusManager.printInfo(clickedNode as Node);
+
+  const focusMoved = focusManager.moveFocusFromClickInfo(
+    targetElement,
+    new Point(clientX, clientY),
+  );
+  if (!focusMoved) return;
+
+  if (!focusManager.existsAnchorRects()) return;
+
+  movedAfterFocus = false;
+
+  registerFrameDrawSchedule();
+  focusManager.scrollToFocusedAnchor();
+}
+
 function toggleFocus(): void {
   focusActive = !focusActive;
 
@@ -225,6 +285,8 @@ document.addEventListener('keydown', function (e) {
 
   e.preventDefault();
 
+  movedAfterFocus = false;
+
   // 만약 도착한 앵커에 렌더링할 사각형이 존재하지 않는다면 현재 위치가 유효한 지점이 아니라고 판단하고 다시 이동.
   const movedOnce = focusManager.moveFocus(moveDir);
   if (!movedOnce) return;
@@ -233,7 +295,7 @@ document.addEventListener('keydown', function (e) {
     if (!moved) break;
   }
 
-  registerDrawSchedule();
+  registerFrameDrawSchedule();
   focusManager.scrollToFocusedAnchor();
 });
 
@@ -249,28 +311,24 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === 'reload') {
-    init();
+    update();
   }
 });
 
 chrome.storage.onChanged.addListener((change, area) => {
   if (area === 'local' && change.config) {
-    Config.assignProperties(config, change.config.newValue);
-    if (focusActive) {
-      registerDrawSchedule();
-      focusManager.scrollToFocusedAnchor();
+    if (change.config.newValue) {
+      updateConfig(change.config.newValue);
     }
   }
 });
 
-function loadStorageConfigs() {
-  chrome.storage.local.get('config').then(({ config: storedConfig }) => {
-    if (storedConfig) {
-      Config.assignProperties(config, storedConfig);
-    }
-  });
+async function loadStorageConfigs() {
+  const { config: storedConfig } = await chrome.storage.local.get('config');
+  if (storedConfig) {
+    updateConfig(storedConfig);
+  }
 }
-loadStorageConfigs();
 
 /*
 debug.ts 테스트용.
@@ -280,3 +338,5 @@ document.addEventListener("DOMContentLoaded", function (e) {
   activateFocus();
 });
 */
+
+init();

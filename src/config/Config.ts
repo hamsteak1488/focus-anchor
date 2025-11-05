@@ -104,4 +104,14 @@ export class Config {
     (process.env.DEFAULT_TOAST_OPTION as ToastOption) ?? ToastOption.BOTTOM,
     [ToastOption.TOP, ToastOption.MIDDLE, ToastOption.BOTTOM, ToastOption.DISABLED],
   );
+
+  useFocusOnCursorStay = new DropdownConfigItem<string>(
+    process.env.DEFAULT_USE_FOCUS_ON_CURSOR_STAY ?? 'false',
+    ['false', 'true'],
+  );
+  focusOnCursorStayTimeMillis = new NumberConfigItem(
+    parseInt(process.env.DEFAULT_FOCUS_ON_CURSOR_STAY_TIME_MILLIS ?? '700'),
+    100,
+    10000,
+  );
 }
