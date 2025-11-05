@@ -164,7 +164,7 @@ document.addEventListener('click', async function (e) {
 async function idleEvent() {
   if (config.useFocusOnCursorStay.selected === 'false') return;
 
-  console.debug(`idle!`);
+  // console.debug(`idle!`);
 
   if (!movedAfterFocus) {
     return;
@@ -172,9 +172,9 @@ async function idleEvent() {
 
   const element = document.elementFromPoint(lastMouseMoveClientX, lastMouseMoveClientY);
   if (!element) {
-    console.debug(
-      `Return value of elementFromPoint(${lastMouseMoveClientX}, ${lastMouseMoveClientY}) is null.`,
-    );
+    // console.debug(
+    //   `Return value of elementFromPoint(${lastMouseMoveClientX}, ${lastMouseMoveClientY}) is null.`,
+    // );
     return;
   }
 
