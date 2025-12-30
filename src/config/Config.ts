@@ -63,6 +63,7 @@ export class Config {
       DrawStrategy.Highlighter,
       DrawStrategy.FirstCharHighlighter,
       DrawStrategy.Bracket,
+      DrawStrategy.HorizontalSpotlight,
     ],
   );
 

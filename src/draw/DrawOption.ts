@@ -26,4 +26,13 @@ export class DrawOption {
   get rgba(): string {
     return colord(this.rgbColor).alpha(this.alpha).toRgbString();
   }
+
+  static from(drawOption: DrawOption): DrawOption {
+    return new DrawOption(
+      drawOption.rgbColor,
+      drawOption.opacityRatio,
+      drawOption.lineWidth,
+      drawOption.radiusRatio,
+    );
+  }
 }

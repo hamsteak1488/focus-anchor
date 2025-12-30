@@ -8,4 +8,5 @@ export enum DrawStrategy {
   Highlighter = 'Highlighter',
   FirstCharHighlighter = 'FirstCharHighlighter',
   Bracket = 'Bracket',
+  HorizontalSpotlight = 'HorizontalSpotlight',
 }

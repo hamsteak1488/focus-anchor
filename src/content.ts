@@ -17,6 +17,7 @@ import { BracketDrawer } from './draw/BracketDrawer';
 import { DrawOption } from './draw/DrawOption';
 import { Config } from './config/Config';
 import { Idle } from 'idlejs';
+import { HorizontalSpotlightDrawer } from './draw/HorizontalSpotlightDrawer';
 
 const renderer = new Renderer();
 const focusManager = new FocusManager();
@@ -31,6 +32,7 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
   [DrawStrategy.Highlighter, new HighlighterDrawer()],
   [DrawStrategy.FirstCharHighlighter, new FirstCharHighlighterDrawer()],
   [DrawStrategy.Bracket, new BracketDrawer()],
+  [DrawStrategy.HorizontalSpotlight, new HorizontalSpotlightDrawer()],
 ]);
 
 let idle: Idle;
