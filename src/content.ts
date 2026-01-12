@@ -38,6 +38,7 @@ const drawerMap = new Map<DrawStrategy, Drawer>([
 let idle: Idle;
 let movedAfterFocus = false;
 let lastMouseMoveClientX: number, lastMouseMoveClientY: number;
+let mouseLeaved = false;
 
 let focusActive = false;
 const config = ConfigManager.getInstance();
@@ -164,6 +165,7 @@ document.addEventListener('click', async function (e) {
 
 async function idleEvent() {
   if (config.useFocusOnCursorStay.selected === 'false') return;
+  if (mouseLeaved) return;
 
   // console.debug(`idle!`);
 
@@ -298,6 +300,14 @@ document.addEventListener('keydown', function (e) {
 
   registerFrameDrawSchedule();
   focusManager.scrollToFocusedAnchor();
+});
+
+document.addEventListener('mouseenter', function (e) {
+  mouseLeaved = false;
+});
+
+document.addEventListener('mouseleave', function (e) {
+  mouseLeaved = true;
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
